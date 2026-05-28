@@ -15,6 +15,7 @@ export default function Page() {
       <RecipeContextProvider>
         <main className="flex-1 p-4">
           <FileUpload accept=".txt,.pdf" />
+          <RecipeDetails />
           <Chat />
         </main>
       </RecipeContextProvider>
