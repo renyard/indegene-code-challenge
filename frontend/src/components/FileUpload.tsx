@@ -12,35 +12,26 @@ export function FileUpload({ accept }: { accept?: string }): React.JSX.Element {
 
   const mutation = useMutation({
     onError: (error) => {
-      setContext({
-        context: {
-          ...context,
-          pending: false,
-          error: error.message,
-        },
-        setContext,
-      });
+      setContext((currentContext) => ({
+        ...currentContext,
+        pending: false,
+        error: error.message,
+      }));
     },
     onMutate: () => {
-      setContext({
-        context: {
-          ...context,
-          pending: true,
-          error: null,
-        },
-        setContext,
-      });
+      setContext((currentContext) => ({
+        ...currentContext,
+        pending: true,
+        error: null,
+      }));
     },
     onSuccess: (result) => {
       setContext({
-        context: {
-          pending: false,
-          error: null,
-          threadId: result.threadId,
-          runId: result.runId,
-          state: result.state,
-        },
-        setContext,
+        pending: false,
+        error: null,
+        threadId: result.threadId,
+        runId: result.runId,
+        state: result.state,
       });
     },
     mutationFn: async (formData: FormData) => {
@@ -56,7 +47,7 @@ export function FileUpload({ accept }: { accept?: string }): React.JSX.Element {
 
   return (
     <Form.Root
-      className="max-w-md"
+      className="mx-auto flex min-h-[calc(100vh-2rem)] w-full max-w-md items-center justify-center"
       onSubmit={async (e) => {
         e.preventDefault();
         const formData = new FormData(e.currentTarget);
@@ -65,16 +56,21 @@ export function FileUpload({ accept }: { accept?: string }): React.JSX.Element {
         });
       }}
     >
-      <Flex direction="column" gap="3">
-        <Form.Field name="file">
-          <Flex direction="column" gap="2">
-            <Form.Label asChild>
-              <Text as="label" htmlFor={inputId} size="2" weight="medium">
-                Upload file
-              </Text>
-            </Form.Label>
+      <Flex direction="column" gap="3" className="text-center">
+        <h1 className="text-4xl font-bold">Recipe Chat</h1>
+        <p>
+          Upload a recipe file to start chatting with the recipe agent.
+          Supported formats: .txt, .pdf.
+        </p>
 
-            <Flex align="center" gap="3" wrap="wrap">
+        <Form.Field name="file" className="m-8 b-4">
+          <Flex direction="column" gap="2">
+            <Flex
+              align="center"
+              gap="3"
+              wrap="wrap"
+              className="rounded border border-gray-300 p-3"
+            >
               <Button asChild variant="soft" disabled={isPending}>
                 <label htmlFor={inputId}>Choose file</label>
               </Button>
@@ -109,7 +105,13 @@ export function FileUpload({ accept }: { accept?: string }): React.JSX.Element {
 
         <Form.Field name="submit">
           <Form.Control asChild>
-            <Button name="submit" type="submit" disabled={isPending}>
+            <Button
+              name="submit"
+              type="submit"
+              loading={isPending}
+              disabled={isPending}
+              size="4"
+            >
               Upload
             </Button>
           </Form.Control>

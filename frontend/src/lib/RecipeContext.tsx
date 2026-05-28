@@ -1,31 +1,40 @@
-import { createContext, useContext, useState } from "react";
+import {
+  createContext,
+  useContext,
+  useState,
+  type Dispatch,
+  type SetStateAction,
+} from "react";
 import type { RecipeAgentState } from "@/types/recipe";
 
-export interface RecipeContextValue {
-  context: {
-    pending: boolean;
-    error: string | null;
-    threadId: string | null;
-    runId: string | null;
-    state: RecipeAgentState | null;
-  };
-  setContext: (newContext: RecipeContextValue) => void;
+export interface RecipeContextState {
+  pending: boolean;
+  error: string | null;
+  threadId: string | null;
+  runId: string | null;
+  state: RecipeAgentState | null;
 }
 
+export interface RecipeContextValue {
+  context: RecipeContextState;
+  setContext: Dispatch<SetStateAction<RecipeContextState>>;
+}
+
+const defaultContextState: RecipeContextState = {
+  pending: false,
+  error: null,
+  threadId: null,
+  runId: null,
+  state: null,
+};
+
 const defaultContextValue: RecipeContextValue = {
-  context: {
-    pending: false,
-    error: null,
-    threadId: null,
-    runId: null,
-    state: null,
-  },
+  context: defaultContextState,
   setContext: () => {},
 };
 
-export const RecipeContext = createContext<RecipeContextValue | undefined>(
-  defaultContextValue,
-);
+export const RecipeContext =
+  createContext<RecipeContextValue>(defaultContextValue);
 
 export function useRecipeContext(): RecipeContextValue {
   const context = useContext(RecipeContext);
@@ -44,11 +53,12 @@ export function RecipeContextProvider({
 }: {
   children: React.ReactNode;
 }): React.JSX.Element {
-  const [context, setContext] =
-    useState<RecipeContextValue>(defaultContextValue);
+  const [context, setContext] = useState<RecipeContextState>(
+    defaultContextState,
+  );
 
   return (
-    <RecipeContext.Provider value={{ ...context, setContext }}>
+    <RecipeContext.Provider value={{ context, setContext }}>
       {children}
     </RecipeContext.Provider>
   );
