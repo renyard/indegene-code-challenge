@@ -1,36 +1,169 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Recipe Companion Frontend
 
-## Getting Started
+Frontend for the Recipe Companion coding challenge. It is a Next.js app that lets a user upload a recipe, renders the structured recipe returned by the backend, and opens a CopilotKit chat sidebar connected to the recipe agent.
 
-First, run the development server:
+The backend is expected to run separately on `http://localhost:8000`.
+
+## Requirements
+
+- Node.js 20+
+- npm
+- Backend running on port `8000`
+
+Install dependencies from this directory:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Running Locally
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Start the backend first:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+cd ../backend
+uv sync
+uv run uvicorn src.main:app --reload --port 8000
+```
 
-## Learn More
+Then start the frontend:
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+cd ../frontend
+npm run dev
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Open `http://localhost:3000`.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Useful Commands
 
-## Deploy on Vercel
+```bash
+npm run dev          # Start the Next.js development server
+npm run build        # Build for production
+npm run start        # Start the production server after building
+npm test             # Run Jest tests
+npm run test:watch   # Run Jest in watch mode
+npm run lint         # Run Biome checks
+npm run format       # Format with Biome
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Mock Upload Mode
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Uploads normally call the backend `POST /upload` endpoint.
+
+For frontend-only work, set:
+
+```bash
+NEXT_PUBLIC_MOCK_UPLOAD=true
+```
+
+When enabled, `src/lib/api/upload.ts` returns a mock upload response from `src/lib/mockUpload.ts` instead of calling the backend. This is useful for UI development and tests that do not need the Python service.
+
+## Architecture
+
+### App Shell
+
+`src/app/page.tsx` is the main client-side page. It wraps the app in:
+
+- `QueryClientProvider` for React Query mutations.
+- `RecipeContextProvider` for shared recipe, upload, thread and error state.
+
+The visible app is composed from:
+
+- `FileUpload` for selecting and submitting `.txt` or `.pdf` recipes.
+- `RecipeDetails` for rendering the parsed recipe.
+- `ChatWrapper` for the CopilotKit chat sidebar.
+
+### Upload Flow
+
+`src/components/FileUpload.tsx` owns the upload form. It uses React Query's `useMutation` to call `upload()` in `src/lib/api/upload.ts`.
+
+On success, the upload response is written into `RecipeContext`:
+
+- `threadId`
+- `runId`
+- `state`
+
+The backend response state is the initial `RecipeAgentState`. Once this exists, the recipe view and chat can render.
+
+### Shared State
+
+`src/lib/RecipeContext.tsx` stores the current frontend session:
+
+- `pending`
+- `error`
+- `threadId`
+- `runId`
+- `state`
+
+The `state` value follows the TypeScript types in `src/types/recipe.ts`, which mirror the backend recipe context model.
+
+The UI reacts to this state directly. Agent messages are not parsed for recipe updates.
+
+### Recipe View
+
+`src/components/RecipeDetails.tsx` reads `context.state.recipe` and renders the title, tags, description, timings, servings, ingredients and steps.
+
+When the agent changes recipe state, this component re-renders from the updated context.
+
+### Chat and Agent Wiring
+
+`src/components/Chat.tsx` mounts CopilotKit only after a successful upload, because it needs both:
+
+- `threadId`
+- initial recipe `state`
+
+`ChatSidebar` uses CopilotKit's `useAgent()` with the backend agent id:
+
+```ts
+recipe_agent
+```
+
+It seeds the agent with the upload state, assigns the `threadId`, and subscribes to `OnStateChanged` updates. Valid agent state changes are written back into `RecipeContext`.
+
+### CopilotKit Runtime Route
+
+`src/app/api/copilotkit/[[...slug]]/route.ts` defines the local Next.js API route used by the browser:
+
+```text
+/api/copilotkit
+```
+
+That route creates a CopilotKit runtime with an `HttpAgent` that forwards agent traffic to the backend:
+
+```text
+http://localhost:8000/copilotkit
+```
+
+This keeps the browser pointed at the Next app while the runtime proxies AG-UI traffic to the Python service.
+
+## Backend Contract
+
+The frontend depends on these backend endpoints:
+
+- `POST http://localhost:8000/upload`
+- `POST http://localhost:8000/copilotkit`
+
+The expected backend agent name is:
+
+```text
+recipe_agent
+```
+
+The backend owns recipe extraction and agent tools such as scaling servings, substituting ingredients and updating cooking progress. The frontend displays the resulting state.
+
+## Testing
+
+Tests live next to the code they cover:
+
+- `src/components/*.test.tsx`
+- `src/lib/*.test.tsx`
+- `src/lib/api/*.test.ts`
+
+Run them with:
+
+```bash
+npm test
+```
+
+The test environment is Jest with jsdom and React Testing Library.
