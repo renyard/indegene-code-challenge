@@ -44,7 +44,7 @@ export function RecipeDetails(): React.JSX.Element {
           <li key={index}>
             {ingredient.name}{" "}
             {ingredient.quantity &&
-              `(${ingredient.quantity} ${ingredient.unit})`}
+              `(${ingredient.quantity}${ingredient.unit ? ` ${ingredient.unit}` : ""})`}
           </li>
         ))}
       </ul>
