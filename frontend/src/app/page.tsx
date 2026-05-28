@@ -1,13 +1,21 @@
-import { CopilotKit } from "@copilotkit/react-core";
-import { CopilotSidebar } from "@copilotkit/react-core/v2";
+"use client";
+
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+
+import { RecipeContextProvider } from "@/lib/RecipeContext";
+import { Chat } from "@/components/Chat";
+import { FileUpload } from "@/components/FileUpload";
+
+const queryClient = new QueryClient();
 
 export default function Page() {
   return (
-    <main>
-      <h1>Your App</h1>
-      <CopilotKit runtimeUrl="http://localhost:8000/copilotkit">
-        <CopilotSidebar />
-      </CopilotKit>
-    </main>
+    <QueryClientProvider client={queryClient}>
+      <RecipeContextProvider>
+        <main className="flex-1 p-4">
+          <FileUpload accept=".txt,.pdf" />
+        </main>
+      </RecipeContextProvider>
+    </QueryClientProvider>
   );
 }

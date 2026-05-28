@@ -1,0 +1,87 @@
+{
+  "title": "Weeknight Tomato Pasta",
+  "description": "A fast mock recipe for frontend development without calling the parser.",
+  "servings": 4,
+  "original_servings": null,
+  "prep_time_minutes": 10,
+  "cook_time_minutes": 20,
+  "difficulty": "easy",
+  "cuisine": "Italian",
+  "dietary_tags": ["vegetarian"],
+  "ingredients": [
+    {
+      "name": "spaghetti",
+      "quantity": 400,
+      "unit": "g",
+      "preparation": null,
+      "category": "pantry",
+      "substitutes": ["linguine", "penne"]
+    },
+    {
+      "name": "cherry tomatoes",
+      "quantity": 500,
+      "unit": "g",
+      "preparation": "halved",
+      "category": "produce",
+      "substitutes": ["tinned tomatoes"]
+    },
+    {
+      "name": "garlic",
+      "quantity": 3,
+      "unit": "cloves",
+      "preparation": "minced",
+      "category": "produce",
+      "substitutes": ["garlic paste"]
+    },
+    {
+      "name": "olive oil",
+      "quantity": 2,
+      "unit": "tbsp",
+      "preparation": null,
+      "category": "pantry",
+      "substitutes": ["rapeseed oil"]
+    },
+    {
+      "name": "basil",
+      "quantity": 1,
+      "unit": "handful",
+      "preparation": "torn",
+      "category": "produce",
+      "substitutes": ["parsley"]
+    }
+  ],
+  "steps": [
+    {
+      "step_number": 1,
+      "instruction": "Bring a large pan of salted water to the boil and cook the spaghetti until al dente.",
+      "duration_minutes": 10,
+      "timer_label": "Cook pasta",
+      "requires_attention": false,
+      "tips": ["Reserve a mug of pasta water before draining."]
+    },
+    {
+      "step_number": 2,
+      "instruction": "Warm the olive oil, add the garlic, and cook for one minute until fragrant.",
+      "duration_minutes": 2,
+      "timer_label": "Soften garlic",
+      "requires_attention": true,
+      "tips": ["Keep the heat moderate so the garlic does not burn."]
+    },
+    {
+      "step_number": 3,
+      "instruction": "Add the cherry tomatoes and simmer until they collapse into a glossy sauce.",
+      "duration_minutes": 8,
+      "timer_label": "Simmer sauce",
+      "requires_attention": false,
+      "tips": ["Crush a few tomatoes with the back of a spoon."]
+    },
+    {
+      "step_number": 4,
+      "instruction": "Toss the spaghetti through the sauce with basil and enough pasta water to loosen.",
+      "duration_minutes": 2,
+      "timer_label": null,
+      "requires_attention": false,
+      "tips": ["Finish with black pepper and extra basil."]
+    }
+  ]
+}
