@@ -5,6 +5,7 @@ import "@radix-ui/themes/styles.css";
 import "@copilotkit/react-ui/v2/styles.css";
 import "./globals.css";
 import { Theme } from "@radix-ui/themes";
+import { FlyonInit } from "@/components/FlyonInit";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -32,6 +33,7 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
+        <FlyonInit />
         <Theme accentColor="gray">{children}</Theme>
       </body>
     </html>
