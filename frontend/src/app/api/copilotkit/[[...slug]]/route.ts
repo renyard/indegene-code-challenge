@@ -5,11 +5,12 @@ import {
 } from "@copilotkit/runtime/v2";
 
 const basePath = "/api/copilotkit";
+const backendUrl = process.env.BACKEND_URL ?? "http://localhost:8000";
 
 const runtime = new CopilotRuntime({
   agents: {
     recipe_agent: new HttpAgent({
-      url: "http://localhost:8000/copilotkit",
+      url: `${backendUrl.replace(/\/$/, "")}/copilotkit`,
     }),
   },
 });

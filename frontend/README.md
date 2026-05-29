@@ -35,6 +35,32 @@ npm run dev
 
 Open `http://localhost:3000`.
 
+## Running with Docker
+
+From the repo root, create `.env` for the backend service:
+
+```env
+LLM_MODEL=gemini-2.0-flash
+GEMINI_API_KEY=your_key_here
+```
+
+Then build and run the full app:
+
+```bash
+docker compose up --build
+```
+
+Open `http://localhost:3000`.
+
+To build or run only the frontend service:
+
+```bash
+docker compose build frontend
+docker compose up frontend
+```
+
+The Docker Compose frontend service sets `BACKEND_URL=http://backend:8000` so the Next.js CopilotKit API route can reach the backend container. Browser uploads still use `http://localhost:8000/upload`, which is exposed by the backend service.
+
 ## Useful Commands
 
 ```bash
@@ -134,6 +160,8 @@ That route creates a CopilotKit runtime with an `HttpAgent` that forwards agent 
 ```text
 http://localhost:8000/copilotkit
 ```
+
+Set `BACKEND_URL` to override this in server-side environments. Docker Compose sets it to `http://backend:8000`.
 
 This keeps the browser pointed at the Next app while the runtime proxies AG-UI traffic to the Python service.
 

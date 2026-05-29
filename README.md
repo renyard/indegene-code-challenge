@@ -57,14 +57,16 @@ Use AI assistants freely. I care about outcomes, not keystrokes. See [agents.md]
 
 Use Gemini's free tier. Grab a key at https://aistudio.google.com/apikey (sign in, click **Create API key**, copy it).
 
-Create `backend/.env`:
+For local backend development, create `backend/.env`:
 
 ```env
 LLM_MODEL=gemini-2.0-flash
 GEMINI_API_KEY=your_key_here
 ```
 
-Values must not be quoted — `docker-compose` passes them literally.
+For Docker Compose, create the same values in `.env` at the repo root, because `docker-compose.yml` reads `./.env`.
+
+Values must not be quoted. `python-dotenv` strips quotes for local runs, but Docker Compose passes them literally.
 
 ### 2. Run the backend
 
@@ -81,6 +83,24 @@ docker-compose up backend
 ```
 
 OpenAPI at http://localhost:8000/docs.
+
+### 3. Run the full app with Docker
+
+From the repo root:
+
+```bash
+docker compose up --build
+```
+
+The frontend is available at http://localhost:3000 and the backend at http://localhost:8000.
+
+Useful Docker commands:
+
+```bash
+docker compose build frontend  # Build only the frontend image
+docker compose up frontend     # Run frontend and its backend dependency
+docker compose down            # Stop and remove the containers
+```
 
 For state model, CopilotKit wiring and the agent's tools: [backend/README.md](backend/README.md).
 

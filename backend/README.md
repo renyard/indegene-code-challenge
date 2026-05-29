@@ -14,6 +14,29 @@ uv run uvicorn src.main:app --reload --port 8000
 
 OpenAPI at http://localhost:8000/docs.
 
+## Run it with Docker
+
+From the repo root, create `.env` for Docker Compose:
+
+```env
+LLM_MODEL=gemini-2.0-flash
+GEMINI_API_KEY=...
+```
+
+Then run the backend container:
+
+```bash
+docker compose up --build backend
+```
+
+To run the backend with the frontend container:
+
+```bash
+docker compose up --build
+```
+
+The backend is available at http://localhost:8000. The frontend is available at http://localhost:3000 when the full app is running.
+
 ### .env
 
 Pick one provider. The model is chosen by the `LLM_MODEL` prefix (`gpt-*`, `o1`, `o3`, `o4` → OpenAI; `gemini-*` → Google).
