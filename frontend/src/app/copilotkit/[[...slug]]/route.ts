@@ -4,7 +4,7 @@ import {
   createCopilotRuntimeHandler,
 } from "@copilotkit/runtime/v2";
 
-const basePath = "/api/copilotkit";
+const basePath = "/copilotkit";
 const backendUrl = process.env.BACKEND_URL ?? "http://localhost:8000";
 
 const runtime = new CopilotRuntime({

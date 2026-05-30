@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import type { Dispatch, ReactNode, SetStateAction } from "react";
-import { ChatWrapper } from "@/components/Chat";
+import { Chat } from "@/components/Chat";
 import { RecipeContext, type RecipeContextState } from "@/lib/RecipeContext";
 
 type MockAgentSubscription = {
@@ -10,20 +10,29 @@ type MockAgentSubscription = {
 const mockAgent = {
   state: {},
   threadId: "",
+  messages: [],
+  addMessage: jest.fn(),
   setState: jest.fn(),
   subscribe: jest.fn((_subscription: MockAgentSubscription) => ({
     unsubscribe: jest.fn(),
   })),
 };
 
+const mockRunAgent = jest.fn();
+
 jest.mock("@copilotkit/react-core/v2", () => ({
   CopilotKit: ({ children }: { children: ReactNode }) => <div>{children}</div>,
-  CopilotSidebar: jest.fn(() => <div>Mocked CopilotSidebar</div>),
   UseAgentUpdate: {
     OnStateChanged: "OnStateChanged",
   },
+  randomUUID: jest.fn(() => "message-1"),
   useAgent: jest.fn(() => ({
     agent: mockAgent,
+  })),
+  useCopilotKit: jest.fn(() => ({
+    copilotkit: {
+      runAgent: mockRunAgent,
+    },
   })),
 }));
 
@@ -54,22 +63,30 @@ function renderWithRecipeContext(children: ReactNode) {
   return { ...renderResult, setContext };
 }
 
-describe("ChatWrapper component", () => {
+describe("Chat component", () => {
   beforeEach(() => {
     mockAgent.state = {};
     mockAgent.threadId = "";
+    mockAgent.messages = [];
+    mockAgent.addMessage.mockClear();
     mockAgent.setState.mockClear();
-    mockAgent.subscribe.mockClear();
+    mockAgent.subscribe = jest.fn((_subscription: MockAgentSubscription) => ({
+      unsubscribe: jest.fn(),
+    }));
+    mockRunAgent.mockClear();
   });
 
-  it("renders the CopilotSidebar", () => {
-    renderWithRecipeContext(<ChatWrapper />);
+  it("renders the chat input", () => {
+    renderWithRecipeContext(<Chat />);
 
-    expect(screen.getByText("Mocked CopilotSidebar")).toBeInTheDocument();
+    expect(
+      screen.getByPlaceholderText("Type a message..."),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Send" })).toBeInTheDocument();
   });
 
   it("initializes agent state and threadId from context", () => {
-    renderWithRecipeContext(<ChatWrapper />);
+    renderWithRecipeContext(<Chat />);
 
     expect(mockAgent.threadId).toBe("thread-1");
     expect(mockAgent.setState).toHaveBeenCalledWith(context.state);
@@ -90,7 +107,7 @@ describe("ChatWrapper component", () => {
     });
     mockAgent.subscribe = mockSubscribe;
 
-    const { setContext } = renderWithRecipeContext(<ChatWrapper />);
+    const { setContext } = renderWithRecipeContext(<Chat />);
 
     expect(mockSubscribe).toHaveBeenCalled();
     expect(setContext).toHaveBeenCalledWith(expect.any(Function));

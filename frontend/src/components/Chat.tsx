@@ -1,13 +1,12 @@
-import { useRecipeContext, type RecipeContextState } from "@/lib/RecipeContext";
-import type { RecipeAgentState } from "@/types/recipe";
-
 import {
-  CopilotKit,
-  CopilotSidebar,
-  useAgent,
   UseAgentUpdate,
+  randomUUID,
+  useAgent,
+  useCopilotKit,
 } from "@copilotkit/react-core/v2";
-import { useEffect, type Dispatch, type SetStateAction } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { type RecipeContextState, useRecipeContext } from "@/lib/RecipeContext";
+import type { RecipeAgentState } from "@/types/recipe";
 
 function isRecipeAgentState(state: unknown): state is RecipeAgentState {
   return (
@@ -22,24 +21,26 @@ function isRecipeAgentState(state: unknown): state is RecipeAgentState {
   );
 }
 
-export function ChatSidebar({
-  context,
-  setContext,
-  threadId,
+export function Chat({
+  className,
 }: {
-  context: RecipeContextState;
-  setContext: Dispatch<SetStateAction<RecipeContextState>>;
-  threadId: string;
+  className?: string;
 }): React.JSX.Element | null {
   const { agent } = useAgent({
     agentId: "recipe_agent",
     updates: [UseAgentUpdate.OnStateChanged],
   });
+  const { copilotkit } = useCopilotKit();
+  const { context, setContext } = useRecipeContext();
+  const { state, threadId } = context;
+
+  const [input, setInput] = useState("");
 
   useEffect(() => {
     if (
       Object.keys(context.state || {}).length > 0 &&
-      Object.keys(agent.state || {}).length === 0
+      Object.keys(agent.state || {}).length === 0 &&
+      threadId
     ) {
       agent.threadId = threadId;
       agent.setState(context.state);
@@ -64,30 +65,67 @@ export function ChatSidebar({
       subscription.unsubscribe();
     };
   }, [agent, setContext]);
-
-  return (
-    <CopilotSidebar
-      agentId="recipe_agent"
-      defaultOpen={window.innerWidth > 768}
-    />
-  );
-}
-
-export function ChatWrapper(): React.JSX.Element | null {
-  const { context, setContext } = useRecipeContext();
-  const { state, threadId } = context;
+  const sendMessage = useCallback(async () => {
+    if (!input.trim()) return;
+    agent.addMessage({
+      id: randomUUID(),
+      role: "user",
+      content: input,
+    });
+    setInput("");
+    await copilotkit.runAgent({ agent });
+  }, [input, agent, copilotkit]);
 
   if (!threadId || !state) {
     return null;
   }
 
   return (
-    <CopilotKit runtimeUrl="/api/copilotkit" agent="recipe_agent">
-      <ChatSidebar
-        context={context}
-        setContext={setContext}
-        threadId={threadId}
-      />
-    </CopilotKit>
+    <div className={`flex min-h-0 flex-1 flex-col card ${className ?? ""}`}>
+      <div className="min-h-0 flex-1 overflow-y-auto p-4 bg-gray-100">
+        {agent.messages.map((message, index) => {
+          if (
+            !message.content ||
+            (message.role !== "user" && message.role !== "assistant")
+          ) {
+            return null;
+          }
+
+          return (
+            <div key={index}>
+              {message.content ? (
+                <div
+                  className={`chat chat-${message.role === "user" ? "sender" : "receiver"}`}
+                >
+                  <div className="chat-bubble">{message.content as string}</div>
+                </div>
+              ) : null}
+            </div>
+          );
+        })}
+      </div>
+      <form
+        className="p-4 flex gap-2"
+        onSubmit={(e) => {
+          e.preventDefault();
+          sendMessage();
+        }}
+      >
+        <textarea
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          placeholder="Type a message..."
+          rows={1}
+          className="grow shrink-0 resize-none overflow-hidden rounded-lg border px-3 py-2 leading-6"
+        />
+        <button
+          type="submit"
+          aria-label="Send"
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-blue-500 text-white"
+        >
+          <span className="icon-[tabler--arrow-narrow-up]" aria-hidden="true" />
+        </button>
+      </form>
+    </div>
   );
 }
