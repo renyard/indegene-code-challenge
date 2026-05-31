@@ -80,9 +80,11 @@ export function Chat({
     return null;
   }
 
+  console.log(agent.messages);
+
   return (
     <div className={`flex min-h-0 flex-1 flex-col card ${className ?? ""}`}>
-      <div className="min-h-0 flex-1 overflow-y-auto p-4 bg-gray-100">
+      <div className="min-h-0 flex-1 overflow-y-auto p-4">
         {agent.messages.map((message, index) => {
           if (
             !message.content ||
