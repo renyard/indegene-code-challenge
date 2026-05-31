@@ -4,7 +4,7 @@ import {
   useAgent,
   useCopilotKit,
 } from "@copilotkit/react-core/v2";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { type RecipeContextState, useRecipeContext } from "@/lib/RecipeContext";
 import type { RecipeAgentState } from "@/types/recipe";
 
@@ -28,13 +28,17 @@ export function Chat({
 }): React.JSX.Element | null {
   const { agent } = useAgent({
     agentId: "recipe_agent",
-    updates: [UseAgentUpdate.OnStateChanged],
+    updates: [
+      UseAgentUpdate.OnMessagesChanged,
+      UseAgentUpdate.OnRunStatusChanged,
+      UseAgentUpdate.OnStateChanged,
+    ],
   });
   const { copilotkit } = useCopilotKit();
   const { context, setContext } = useRecipeContext();
   const { state, threadId } = context;
-
   const [input, setInput] = useState("");
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (
@@ -65,6 +69,14 @@ export function Chat({
       subscription.unsubscribe();
     };
   }, [agent, setContext]);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({
+      behavior: "smooth",
+      block: "end",
+    });
+  }, [agent.messages.length, agent.isRunning]);
+
   const sendMessage = useCallback(async () => {
     if (!input.trim()) return;
     agent.addMessage({
@@ -84,7 +96,7 @@ export function Chat({
 
   return (
     <div className={`flex min-h-0 flex-1 flex-col card ${className ?? ""}`}>
-      <div className="min-h-0 flex-1 overflow-y-auto p-4">
+      <div className="min-h-0 flex-1 overflow-y-auto rounded-lg p-4 bg-gray-100 dark:bg-gray-800">
         {agent.messages.map((message, index) => {
           if (
             !message.content ||
@@ -105,6 +117,14 @@ export function Chat({
             </div>
           );
         })}
+        {agent.isRunning && (
+          <div className="chat chat-receiver">
+            <div className="chat-bubble">
+              <span className="loading loading-dots loading-sm" />
+            </div>
+          </div>
+        )}
+        <div ref={messagesEndRef} />
       </div>
       <form
         className="p-4 flex gap-2"
@@ -113,19 +133,28 @@ export function Chat({
           sendMessage();
         }}
       >
-        <textarea
+        <input
+          type="text"
+          name="message"
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="Type a message..."
-          rows={1}
           className="grow shrink-0 resize-none overflow-hidden rounded-lg border px-3 py-2 leading-6"
         />
         <button
           type="submit"
           aria-label="Send"
-          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-blue-500 text-white"
+          disabled={!input.trim() || agent.isRunning}
+          className="btn btn-primary flex h-11 w-11 shrink-0 items-center justify-center rounded-full  text-white"
         >
-          <span className="icon-[tabler--arrow-narrow-up]" aria-hidden="true" />
+          {agent.isRunning ? (
+            <span className="loading loading-spinner" />
+          ) : (
+            <span
+              className="icon-[tabler--arrow-narrow-up]"
+              aria-hidden="true"
+            />
+          )}
         </button>
       </form>
     </div>
