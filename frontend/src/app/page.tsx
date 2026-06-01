@@ -28,12 +28,17 @@ function PageContent() {
 
   return (
     <main className="flex min-h-screen max-h-screen flex-col gap-4 p-4">
-      <Header className="w-full shrink-0" />
+      <Header
+        className="w-full shrink-0"
+        showButtons={context.threadId !== null}
+      />
       {!context.threadId ? (
         <FileUpload accept=".txt,.pdf" className="w-full flex-1" />
       ) : (
         <section className="flex min-h-0 flex-1 flex-col gap-4 lg:flex-row">
-          <RecipeDetails className="min-h-0 lg:basis-3/5" />
+          <div className="min-h-0 overflow-y-auto lg:basis-3/5">
+            <RecipeDetails />
+          </div>
           <Chat className="min-h-0 lg:basis-2/5" />
         </section>
       )}

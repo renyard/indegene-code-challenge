@@ -4,6 +4,7 @@ import { Box, Button, Flex, Text } from "@radix-ui/themes";
 import { useId, useState } from "react";
 import { useRecipeContext } from "@/lib/RecipeContext";
 import { upload } from "@/lib/api/upload";
+import { LoadingSkeleton } from "./LoadingSkeleton";
 
 export function FileUpload({
   accept,
@@ -45,10 +46,10 @@ export function FileUpload({
     },
   });
 
-  const { data, error, isError, isPending } = mutation;
+  const { error, isError, isPending } = mutation;
 
-  if (data) {
-    return <></>;
+  if (isPending) {
+    return <LoadingSkeleton />;
   }
 
   return (
@@ -76,7 +77,6 @@ export function FileUpload({
           className="input max-w-sm"
           aria-label="file-input"
           accept={accept}
-          disabled={isPending}
           onChange={(event) => {
             setFileName(
               event.currentTarget.files?.[0]?.name ?? "No file selected",
@@ -87,12 +87,7 @@ export function FileUpload({
 
       {isError && <Text color="red">{error?.message}</Text>}
 
-      <button
-        name="submit"
-        type="submit"
-        disabled={isPending}
-        className="btn btn-primary"
-      >
+      <button name="submit" type="submit" className="btn btn-primary">
         Upload
       </button>
     </form>
