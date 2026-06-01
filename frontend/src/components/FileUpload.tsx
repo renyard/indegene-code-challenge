@@ -1,6 +1,4 @@
 import { useMutation } from "@tanstack/react-query";
-import * as Form from "@radix-ui/react-form";
-import { Box, Button, Flex, Text } from "@radix-ui/themes";
 import { useId, useState } from "react";
 import { useRecipeContext } from "@/lib/RecipeContext";
 import { upload } from "@/lib/api/upload";
@@ -85,7 +83,7 @@ export function FileUpload({
         />
       </div>
 
-      {isError && <Text color="red">{error?.message}</Text>}
+      {isError && <div className="text-red-500">{error?.message}</div>}
 
       <button name="submit" type="submit" className="btn btn-primary">
         Upload

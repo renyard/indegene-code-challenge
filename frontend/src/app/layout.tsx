@@ -1,10 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 
-import "@radix-ui/themes/styles.css";
 import "@copilotkit/react-ui/v2/styles.css";
 import "./globals.css";
-import { Theme } from "@radix-ui/themes";
 import { FlyonInit } from "@/components/FlyonInit";
 
 const geistSans = Geist({
@@ -34,7 +32,7 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col">
         <FlyonInit />
-        <Theme accentColor="gray">{children}</Theme>
+        {children}
       </body>
     </html>
   );
