@@ -23,7 +23,15 @@ export function Header({
           New Recipe
         </button>
 
-        <button className="btn btn-primary ml-4">Start Cooking</button>
+        <button
+          className="btn btn-primary ml-4"
+          aria-haspopup="dialog"
+          aria-expanded="false"
+          aria-controls="steps-modal"
+          data-overlay="#steps-modal"
+        >
+          Start Cooking
+        </button>
 
         <div
           id="reload-modal"
@@ -37,11 +45,11 @@ export function Header({
                 <h3 className="modal-title">Start a New Recipe?</h3>
                 <button
                   type="button"
-                  className="btn btn-text btn-circle btn-sm absolute end-3 top-3"
+                  className="btn btn-text btn-circle btn-xl absolute end-3 top-3"
                   aria-label="Close"
                   data-overlay="#reload-modal"
                 >
-                  <span className="icon-[tabler--x] size-4"></span>
+                  <span className="icon-[tabler--x] size-8"></span>
                 </button>
               </div>
               <div className="modal-body text-black dark:text-white">
