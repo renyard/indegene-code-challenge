@@ -4,7 +4,7 @@ import { useRecipeContext } from "@/lib/RecipeContext";
 import { useRecipeAgent } from "@/lib/useRecipeAgent";
 
 export function Chat({
-  className,
+  className = "",
 }: {
   className?: string;
 }): React.JSX.Element | null {

@@ -7,7 +7,7 @@ function capitalizeFirstLetter(string: string) {
 }
 
 export function RecipeDetails({
-  className,
+  className = "",
 }: {
   className?: string;
 }): React.JSX.Element {
@@ -19,7 +19,7 @@ export function RecipeDetails({
   }
 
   return (
-    <div className={`overflow-y-auto px-0.5 py-0.5 ${className}`}>
+    <div className={className}>
       <div className="card mb-4 p-4">
         <div className="card-body">
           <h2 className="card-title">{recipe.title}</h2>
@@ -77,6 +77,11 @@ export function RecipeDetails({
                   </span>
                 ))}
               </>
+            )}
+            {recipe.cuisine && (
+              <span className="inline-block bg-green-100 text-green-800 text-sm font-medium mr-2 mb-2 px-2 rounded-xl">
+                {recipe.cuisine}
+              </span>
             )}
           </div>
           {recipe.description && <p>{recipe.description}</p>}

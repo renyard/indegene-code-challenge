@@ -1,6 +1,9 @@
+import Image from "next/image";
+import logo from "../assets/logo.webp";
+
 export function Header({
   showButtons = true,
-  className,
+  className = "",
 }: {
   showButtons?: boolean;
   className?: string;
@@ -9,12 +12,19 @@ export function Header({
     <header
       className={`bg-gray-800 text-white p-4 flex items-center justify-between rounded-lg ${className}`}
     >
-      <h1 className="text-xl font-bold bg-linear-to-r from-gray-400 to-white bg-clip-text text-transparent w-fit">
-        Recipe Assistant
+      <h1 className="flex w-fit flex-row items-center text-xl font-bold text-white">
+        <Image
+          src={logo}
+          alt=""
+          className="mr-2 h-8 w-8"
+          width={32}
+          height={32}
+        />
+        <span>Recipe Assistant</span>
       </h1>
-      <div className={`${showButtons ? "flex" : "hidden"}`}>
+      <div className="flex">
         <button
-          className="btn glass text-white"
+          className={`btn glass text-white ${showButtons ? "" : "invisible"}`}
           aria-haspopup="dialog"
           aria-expanded="false"
           aria-controls="reload-modal"
@@ -24,7 +34,7 @@ export function Header({
         </button>
 
         <button
-          className="btn btn-primary ml-4"
+          className={`btn btn-primary ml-4 ${showButtons ? "" : "invisible"}`}
           aria-haspopup="dialog"
           aria-expanded="false"
           aria-controls="steps-modal"

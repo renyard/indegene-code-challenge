@@ -7,7 +7,7 @@ import { useRecipeAgent } from "@/lib/useRecipeAgent";
 
 export function FileUpload({
   accept,
-  className,
+  className = "",
 }: {
   accept?: string;
   className?: string;

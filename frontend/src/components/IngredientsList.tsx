@@ -12,7 +12,7 @@ export function IngredientsList(): React.JSX.Element {
     <div className="card flex-1 p-4">
       <div className="card-body">
         <h3 className="card-title">Ingredients:</h3>
-        <ul className="list-disc list-inside flex flex-wrap gap-4">
+        <ul className="list-disc list-inside flex flex-col gap-4">
           {recipe.ingredients.map((ingredient, index) => (
             <li key={index} className="flex items-center gap-1">
               <input

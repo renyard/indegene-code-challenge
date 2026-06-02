@@ -38,7 +38,7 @@ function PageContent() {
         <FileUpload accept=".txt,.pdf" className="w-full flex-1" />
       ) : (
         <section className="flex min-h-0 flex-1 flex-col gap-4 lg:flex-row">
-          <div className="min-h-0 overflow-y-auto lg:basis-3/5">
+          <div className="-m-4 min-h-0 overflow-y-auto p-4 lg:basis-3/5">
             <RecipeDetails />
           </div>
           <Chat className="min-h-0 lg:basis-2/5" />
