@@ -9,6 +9,7 @@ import { RecipeDetails } from "@/components/RecipeDetails";
 import { Header } from "@/components/Header";
 import { CopilotKitProvider } from "@copilotkit/react-core/v2";
 import { StepsModal } from "@/components/StepsModal";
+import { WakeLock } from "@/components/WakeLock";
 
 const queryClient = new QueryClient();
 
@@ -41,6 +42,7 @@ function PageContent() {
             <RecipeDetails />
           </div>
           <Chat className="min-h-0 lg:basis-2/5" />
+          <WakeLock />
         </section>
       )}
       <StepsModal />
