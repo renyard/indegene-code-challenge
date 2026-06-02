@@ -1,5 +1,6 @@
-import { useRecipeContext } from "@/lib/RecipeContext";
+import { formatStep } from "@/lib/formatStep";
 import { IngredientsList } from "./IngredientsList";
+import { useRecipeAgent } from "@/lib/useRecipeAgent";
 
 function capitalizeFirstLetter(string: string) {
   return string.charAt(0).toUpperCase() + string.slice(1);
@@ -10,8 +11,8 @@ export function RecipeDetails({
 }: {
   className?: string;
 }): React.JSX.Element {
-  const { context } = useRecipeContext();
-  const recipe = context.state?.recipe;
+  const { agentState } = useRecipeAgent();
+  const { recipe } = agentState;
 
   if (!recipe) {
     return <></>;
@@ -78,7 +79,7 @@ export function RecipeDetails({
               </>
             )}
           </div>
-          <p>{recipe.description}</p>
+          {recipe.description && <p>{recipe.description}</p>}
         </div>
       </div>
 
@@ -90,7 +91,7 @@ export function RecipeDetails({
             <ol className="list-decimal list-inside flex flex-col gap-4">
               {recipe.steps.map((step, index) => (
                 <li key={index} value={step.step_number}>
-                  {step.instruction}
+                  {formatStep(step.instruction)}
                 </li>
               ))}
             </ol>

@@ -1,74 +1,25 @@
-import {
-  randomUUID,
-  UseAgentUpdate,
-  useAgent,
-  useCopilotKit,
-} from "@copilotkit/react-core/v2";
+import { randomUUID, useCopilotKit } from "@copilotkit/react-core/v2";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRecipeContext } from "@/lib/RecipeContext";
-import type { RecipeAgentState } from "@/types/recipe";
-
-function isRecipeAgentState(state: unknown): state is RecipeAgentState {
-  return (
-    typeof state === "object" &&
-    state !== null &&
-    "document_text" in state &&
-    "recipe" in state &&
-    "current_step" in state &&
-    "scaled_servings" in state &&
-    "checked_ingredients" in state &&
-    "cooking_started" in state
-  );
-}
+import { useRecipeAgent } from "@/lib/useRecipeAgent";
 
 export function Chat({
   className,
 }: {
   className?: string;
 }): React.JSX.Element | null {
-  const { agent } = useAgent({
-    agentId: "recipe_agent",
-    updates: [
-      UseAgentUpdate.OnMessagesChanged,
-      UseAgentUpdate.OnRunStatusChanged,
-      UseAgentUpdate.OnStateChanged,
-    ],
-  });
+  const { agent } = useRecipeAgent();
   const { copilotkit } = useCopilotKit();
-  const { context, setContext } = useRecipeContext();
-  const { state, threadId } = context;
+  const { context } = useRecipeContext();
+  const { threadId } = context;
   const [input, setInput] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (
-      Object.keys(context.state || {}).length > 0 &&
-      Object.keys(agent.state || {}).length === 0 &&
-      threadId
-    ) {
+    if (threadId) {
       agent.threadId = threadId;
-      agent.setState(context.state);
     }
-  }, [agent, context.state, threadId]);
-
-  useEffect(() => {
-    const subscription = agent.subscribe({
-      onStateChanged: ({ state }) => {
-        if (!isRecipeAgentState(state)) {
-          return;
-        }
-
-        setContext((prevContext) => ({
-          ...prevContext,
-          state,
-        }));
-      },
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [agent, setContext]);
+  }, [agent, threadId]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView?.({
@@ -78,7 +29,9 @@ export function Chat({
   });
 
   const sendMessage = useCallback(async () => {
-    if (!input.trim()) return;
+    if (!input.trim()) {
+      return;
+    }
     agent.addMessage({
       id: randomUUID(),
       role: "user",
@@ -88,7 +41,7 @@ export function Chat({
     await copilotkit.runAgent({ agent });
   }, [input, agent, copilotkit]);
 
-  if (!threadId || !state) {
+  if (!threadId) {
     return null;
   }
 

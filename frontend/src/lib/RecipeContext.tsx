@@ -5,14 +5,12 @@ import {
   type Dispatch,
   type SetStateAction,
 } from "react";
-import type { RecipeAgentState } from "@/types/recipe";
 
 export interface RecipeContextState {
   pending: boolean;
   error: string | null;
   threadId: string | null;
   runId: string | null;
-  state: RecipeAgentState | null;
 }
 
 export interface RecipeContextValue {
@@ -25,7 +23,6 @@ const defaultContextState: RecipeContextState = {
   error: null,
   threadId: null,
   runId: null,
-  state: null,
 };
 
 const defaultContextValue: RecipeContextValue = {

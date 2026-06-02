@@ -1,8 +1,8 @@
-import { useRecipeContext } from "@/lib/RecipeContext";
+import { useRecipeAgent } from "@/lib/useRecipeAgent";
 
 export function IngredientsList(): React.JSX.Element {
-  const { context, setContext } = useRecipeContext();
-  const recipe = context.state?.recipe;
+  const { agentState, setAgentState } = useRecipeAgent();
+  const recipe = agentState.recipe;
 
   if (!recipe) {
     return <></>;
@@ -23,7 +23,7 @@ export function IngredientsList(): React.JSX.Element {
                 onChange={(e) => {
                   const checked = e.target.checked;
                   const checkedIngredients = new Set(
-                    context.state?.checked_ingredients || [],
+                    agentState.checked_ingredients || [],
                   );
                   const ingredientKey = ingredient.name;
 
@@ -33,24 +33,21 @@ export function IngredientsList(): React.JSX.Element {
                     checkedIngredients.delete(ingredientKey);
                   }
 
-                  setContext((prevState) => {
-                    if (!prevState.state) {
+                  setAgentState((prevState) => {
+                    if (!prevState) {
                       return prevState;
                     }
 
                     return {
                       ...prevState,
-                      state: {
-                        ...prevState.state,
-                        checked_ingredients: Array.from(checkedIngredients),
-                      },
+                      ...prevState,
+                      checked_ingredients: Array.from(checkedIngredients),
                     };
                   });
                 }}
                 checked={
-                  context.state?.checked_ingredients?.includes(
-                    ingredient.name,
-                  ) || false
+                  agentState.checked_ingredients?.includes(ingredient.name) ||
+                  false
                 }
               />{" "}
               <label

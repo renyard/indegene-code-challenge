@@ -3,6 +3,7 @@ import { useId, useState } from "react";
 import { useRecipeContext } from "@/lib/RecipeContext";
 import { upload } from "@/lib/api/upload";
 import { LoadingSkeleton } from "./LoadingSkeleton";
+import { useRecipeAgent } from "@/lib/useRecipeAgent";
 
 export function FileUpload({
   accept,
@@ -12,8 +13,8 @@ export function FileUpload({
   className?: string;
 }): React.JSX.Element {
   const inputId = useId();
-  const [fileName, setFileName] = useState("No file selected");
-  const { context, setContext } = useRecipeContext();
+  const { setContext } = useRecipeContext();
+  const { setAgentState } = useRecipeAgent();
 
   const mutation = useMutation({
     onError: (error) => {
@@ -36,8 +37,12 @@ export function FileUpload({
         error: null,
         threadId: result.threadId,
         runId: result.runId,
-        state: result.state,
       });
+
+      setAgentState((prevState) => ({
+        ...prevState,
+        ...result.state,
+      }));
     },
     mutationFn: async (formData: FormData) => {
       return upload(formData);
@@ -75,11 +80,6 @@ export function FileUpload({
           className="input max-w-sm"
           aria-label="file-input"
           accept={accept}
-          onChange={(event) => {
-            setFileName(
-              event.currentTarget.files?.[0]?.name ?? "No file selected",
-            );
-          }}
         />
       </div>
 

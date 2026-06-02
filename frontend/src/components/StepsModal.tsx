@@ -1,11 +1,11 @@
 "use client";
 
-import { useRecipeContext } from "@/lib/RecipeContext";
+import { useRecipeAgent } from "@/lib/useRecipeAgent";
 import { useState } from "react";
 
 export function StepsModal(): React.JSX.Element {
-  const { context } = useRecipeContext();
-  const steps = context.state?.recipe?.steps || [];
+  const { agentState } = useRecipeAgent();
+  const steps = agentState.recipe?.steps || [];
   const [currentStep, setCurrentStep] = useState(0);
 
   return (
@@ -56,6 +56,9 @@ export function StepsModal(): React.JSX.Element {
           </div>
           <div className="modal-body grow flex flex-col items-center justify-center text-center">
             <div className="mt-5 grow">
+              <h2 className="text-2xl font-bold mb-4">
+                Step {currentStep + 1} of {steps.length}
+              </h2>
               {steps.map((step, index) => (
                 <div
                   key={index}
