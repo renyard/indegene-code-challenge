@@ -53,9 +53,8 @@ export function RecipeContextProvider({
 }: {
   children: React.ReactNode;
 }): React.JSX.Element {
-  const [context, setContext] = useState<RecipeContextState>(
-    defaultContextState,
-  );
+  const [context, setContext] =
+    useState<RecipeContextState>(defaultContextState);
 
   return (
     <RecipeContext.Provider value={{ context, setContext }}>

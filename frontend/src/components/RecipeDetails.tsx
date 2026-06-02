@@ -1,5 +1,5 @@
 import { useRecipeContext } from "@/lib/RecipeContext";
-import { Recipe } from "@/types/recipe";
+import { IngredientsList } from "./IngredientsList";
 
 function capitalizeFirstLetter(string: string) {
   return string.charAt(0).toUpperCase() + string.slice(1);
@@ -11,7 +11,7 @@ export function RecipeDetails({
   className?: string;
 }): React.JSX.Element {
   const { context } = useRecipeContext();
-  const recipe: Recipe | null = context.state?.recipe || null;
+  const recipe = context.state?.recipe;
 
   if (!recipe) {
     return <></>;
@@ -83,20 +83,7 @@ export function RecipeDetails({
       </div>
 
       <div className="flex gap-4 mb-4">
-        <div className="card flex-1 p-4">
-          <div className="card-body">
-            <h3 className="card-title">Ingredients:</h3>
-            <ul className="list-disc list-inside flex flex-wrap gap-4">
-              {recipe.ingredients.map((ingredient, index) => (
-                <li key={index}>
-                  {ingredient.name}{" "}
-                  {ingredient.quantity &&
-                    `(${ingredient.quantity}${ingredient.unit ? ` ${ingredient.unit}` : ""})`}
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
+        <IngredientsList />
         <div className="card flex-1 p-4">
           <div className="card-body">
             <h3 className="card-title">Steps:</h3>
