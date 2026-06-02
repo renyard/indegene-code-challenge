@@ -1,6 +1,10 @@
 import { useRecipeContext } from "@/lib/RecipeContext";
 import { Recipe } from "@/types/recipe";
 
+function capitalizeFirstLetter(string: string) {
+  return string.charAt(0).toUpperCase() + string.slice(1);
+}
+
 export function RecipeDetails({
   className,
 }: {
@@ -16,58 +20,95 @@ export function RecipeDetails({
   return (
     <div className={`overflow-y-auto px-0.5 py-0.5 ${className}`}>
       <div className="card mb-4 p-4">
-        <h2 className="text-2xl font-bold mb-4">{recipe.title}</h2>
-        <div className="mb-4">
-          <span className="inline-block bg-green-100 text-green-800 text-sm font-medium mr-2 mb-2 px-2 rounded-xl">
-            {recipe.difficulty}
-          </span>
-          {recipe.dietary_tags.length > 0 && (
-            <>
-              {recipe.dietary_tags.map((tag, index) => (
+        <div className="card-body">
+          <h2 className="card-title">{recipe.title}</h2>
+          <div className="flex flex-wrap gap-4">
+            <dl className="flex flex-row items-center gap-2">
+              <dd>
                 <span
-                  key={index}
-                  className="inline-block bg-blue-100 text-blue-800 text-sm font-medium mr-2 mb-2 px-2 rounded-xl"
-                >
-                  {tag}
-                </span>
-              ))}
-            </>
-          )}
+                  className="icon-[tabler--users] size-4"
+                  aria-label="Servings"
+                />
+              </dd>
+              <dd className="mb-2 mr-4">
+                {recipe.servings} serving{recipe.servings !== 1 ? "s" : ""}
+              </dd>
+              <dt>
+                <span
+                  className="icon-[tabler--clock] size-4"
+                  aria-label="Preparation Time"
+                />
+              </dt>
+              <dd className="mb-2 mr-4">
+                {recipe.prep_time_minutes} min
+                {recipe.prep_time_minutes !== 1 ? "s" : ""}
+              </dd>
+              <dt>
+                <span
+                  className="icon-[tabler--cooker] size-4"
+                  aria-label="Cooking Time"
+                />
+              </dt>
+              <dd className="mb-2 mr-4">
+                {recipe.cook_time_minutes} min
+                {recipe.cook_time_minutes !== 1 ? "s" : ""}
+              </dd>
+              <dt>
+                <span
+                  className="icon-[tabler--antenna-bars-5] size-4"
+                  aria-label="Difficulty"
+                />
+              </dt>
+              <dd className="mb-2">
+                {capitalizeFirstLetter(recipe.difficulty)}
+              </dd>
+            </dl>
+          </div>
+          <div className="mb-4">
+            {recipe.dietary_tags.length > 0 && (
+              <>
+                {recipe.dietary_tags.map((tag, index) => (
+                  <span
+                    key={index}
+                    className="inline-block bg-blue-100 text-blue-800 text-sm font-medium mr-2 mb-2 px-2 rounded-xl"
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </>
+            )}
+          </div>
+          <p>{recipe.description}</p>
         </div>
-        <p>{recipe.description}</p>
       </div>
 
       <div className="flex gap-4 mb-4">
-        <dl className="card flex-1 p-4">
-          <dt className="font-bold">Servings:</dt>
-          <dd className="mb-2">{recipe.servings}</dd>
-          <dt className="font-bold">Preparation Time:</dt>
-          <dd className="mb-2">{recipe.prep_time_minutes} minutes</dd>
-          <dt className="font-bold">Cooking Time:</dt>
-          <dd className="mb-2">{recipe.cook_time_minutes} minutes</dd>
-        </dl>
         <div className="card flex-1 p-4">
-          <h3 className="text-xl font-semibold mb-2">Ingredients:</h3>
-          <ul className="list-disc list-inside mb-4">
-            {recipe.ingredients.map((ingredient, index) => (
-              <li key={index}>
-                {ingredient.name}{" "}
-                {ingredient.quantity &&
-                  `(${ingredient.quantity}${ingredient.unit ? ` ${ingredient.unit}` : ""})`}
-              </li>
-            ))}
-          </ul>
+          <div className="card-body">
+            <h3 className="card-title">Ingredients:</h3>
+            <ul className="list-disc list-inside flex flex-wrap gap-4">
+              {recipe.ingredients.map((ingredient, index) => (
+                <li key={index}>
+                  {ingredient.name}{" "}
+                  {ingredient.quantity &&
+                    `(${ingredient.quantity}${ingredient.unit ? ` ${ingredient.unit}` : ""})`}
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
-      </div>
-      <div className="card p-4">
-        <h3 className="text-xl font-semibold mb-2">Instructions:</h3>
-        <ol className="list-decimal list-inside">
-          {recipe.steps.map((step, index) => (
-            <li key={index} value={step.step_number}>
-              {step.instruction}
-            </li>
-          ))}
-        </ol>
+        <div className="card flex-1 p-4">
+          <div className="card-body">
+            <h3 className="card-title">Steps:</h3>
+            <ol className="list-decimal list-inside flex flex-col gap-4">
+              {recipe.steps.map((step, index) => (
+                <li key={index} value={step.step_number}>
+                  {step.instruction}
+                </li>
+              ))}
+            </ol>
+          </div>
+        </div>
       </div>
     </div>
   );
