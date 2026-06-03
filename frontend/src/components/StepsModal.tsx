@@ -1,12 +1,24 @@
 "use client";
 
 import { useRecipeAgent } from "@/lib/useRecipeAgent";
-import { useState } from "react";
 
 export function StepsModal(): React.JSX.Element {
-  const { agentState } = useRecipeAgent();
+  const { agentState, setAgentState } = useRecipeAgent();
   const steps = agentState.recipe?.steps || [];
-  const [currentStep, setCurrentStep] = useState(0);
+  const maxStepIndex = Math.max(steps.length - 1, 0);
+  const currentStep = Math.min(
+    Math.max(agentState.current_step, 0),
+    maxStepIndex,
+  );
+
+  const updateCurrentStep = (nextStep: number) => {
+    const boundedStep = Math.min(Math.max(nextStep, 0), maxStepIndex);
+
+    setAgentState((prevState) => ({
+      ...prevState,
+      current_step: boundedStep,
+    }));
+  };
 
   return (
     <div
@@ -25,7 +37,7 @@ export function StepsModal(): React.JSX.Element {
 
                 return (
                   <li
-                    key={index}
+                    key={step.step_number}
                     className="group flex flex-1 shrink basis-0 items-center gap-x-2"
                   >
                     <span className="min-h-7.5 min-w-7.5 inline-flex items-center align-middle text-md">
@@ -35,7 +47,7 @@ export function StepsModal(): React.JSX.Element {
                         {isCompleted ? (
                           <span className="icon-[tabler--check] size-6 shrink-0" />
                         ) : (
-                          <>{index + 1}</>
+                          index + 1
                         )}
                       </span>
                     </span>
@@ -62,7 +74,7 @@ export function StepsModal(): React.JSX.Element {
               <div className="divider" />
               {steps.map((step, index) => (
                 <div
-                  key={index}
+                  key={step.step_number}
                   className={`flex h-full items-center justify-center p-4 ${index === currentStep ? "block" : "hidden"}`}
                 >
                   <p className="text-4xl/loose text-center">
@@ -75,8 +87,8 @@ export function StepsModal(): React.JSX.Element {
               <button
                 type="button"
                 className="btn btn-primary btn-lg"
-                disabled={currentStep === 0}
-                onClick={() => setCurrentStep((prev) => prev - 1)}
+                disabled={steps.length === 0 || currentStep === 0}
+                onClick={() => updateCurrentStep(currentStep - 1)}
               >
                 <span className="icon-[tabler--chevron-left] text-primary-content rtl:rotate-180"></span>
                 Back
@@ -84,8 +96,10 @@ export function StepsModal(): React.JSX.Element {
               <button
                 type="button"
                 className="btn btn-primary btn-lg"
-                disabled={currentStep === steps.length - 1}
-                onClick={() => setCurrentStep((prev) => prev + 1)}
+                disabled={
+                  steps.length === 0 || currentStep === steps.length - 1
+                }
+                onClick={() => updateCurrentStep(currentStep + 1)}
               >
                 Next
                 <span className="icon-[tabler--chevron-right] text-primary-content rtl:rotate-180"></span>

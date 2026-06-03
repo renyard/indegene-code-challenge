@@ -4,10 +4,16 @@ import { StepsModal } from "@/components/StepsModal";
 import type { Recipe, RecipeAgentState } from "@/types/recipe";
 
 let mockAgentState: RecipeAgentState;
+const mockSetAgentState = jest.fn(
+  (updateFn: (prevState: RecipeAgentState) => RecipeAgentState) => {
+    mockAgentState = updateFn(mockAgentState);
+  },
+);
 
 jest.mock("@/lib/useRecipeAgent", () => ({
   useRecipeAgent: jest.fn(() => ({
     agentState: mockAgentState,
+    setAgentState: mockSetAgentState,
   })),
 }));
 
@@ -53,7 +59,11 @@ const recipeState: RecipeAgentState = {
 
 describe("StepsModal", () => {
   beforeEach(() => {
-    mockAgentState = recipeState;
+    mockAgentState = {
+      ...recipeState,
+      current_step: 0,
+    };
+    mockSetAgentState.mockClear();
   });
 
   it("renders the current step and navigation controls", () => {
@@ -66,11 +76,16 @@ describe("StepsModal", () => {
     expect(screen.getByRole("button", { name: /next/i })).toBeEnabled();
   });
 
-  it("moves between steps", async () => {
+  it("updates agent state when moving between steps", async () => {
     const user = userEvent.setup();
-    render(<StepsModal />);
+    const { rerender } = render(<StepsModal />);
 
     await user.click(screen.getByRole("button", { name: /next/i }));
+
+    expect(mockSetAgentState).toHaveBeenCalledTimes(1);
+    expect(mockAgentState.current_step).toBe(1);
+
+    rerender(<StepsModal />);
 
     expect(screen.getByRole("heading", { name: "Step 2 of 2" })).toBeVisible();
     expect(screen.getByText("Stir in the sauce.")).toBeInTheDocument();
@@ -79,7 +94,26 @@ describe("StepsModal", () => {
 
     await user.click(screen.getByRole("button", { name: /back/i }));
 
+    expect(mockSetAgentState).toHaveBeenCalledTimes(2);
+    expect(mockAgentState.current_step).toBe(0);
+
+    rerender(<StepsModal />);
+
     expect(screen.getByRole("heading", { name: "Step 1 of 2" })).toBeVisible();
+  });
+
+  it("renders the current step from agent state", () => {
+    mockAgentState = {
+      ...recipeState,
+      current_step: 1,
+    };
+
+    render(<StepsModal />);
+
+    expect(screen.getByRole("heading", { name: "Step 2 of 2" })).toBeVisible();
+    expect(screen.getByText("Stir in the sauce.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /next/i })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /back/i })).toBeEnabled();
   });
 
   it("handles recipes without steps", () => {
@@ -95,6 +129,6 @@ describe("StepsModal", () => {
 
     expect(screen.getByRole("heading", { name: "Step 1 of 0" })).toBeVisible();
     expect(screen.getByRole("button", { name: /back/i })).toBeDisabled();
-    expect(screen.getByRole("button", { name: /next/i })).toBeEnabled();
+    expect(screen.getByRole("button", { name: /next/i })).toBeDisabled();
   });
 });

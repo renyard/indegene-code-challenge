@@ -12,7 +12,7 @@ export function RecipeDetails({
   className?: string;
 }): React.JSX.Element {
   const { agentState } = useRecipeAgent();
-  const { recipe } = agentState;
+  const { current_step: currentStep, recipe } = agentState;
 
   if (!recipe) {
     return <></>;
@@ -95,7 +95,11 @@ export function RecipeDetails({
             <h3 className="card-title">Steps:</h3>
             <ol className="list-decimal list-inside flex flex-col gap-4">
               {recipe.steps.map((step, index) => (
-                <li key={index} value={step.step_number}>
+                <li
+                  key={index}
+                  value={step.step_number}
+                  className={`${index < currentStep ? "line-through" : ""}`}
+                >
                   {formatStep(step.instruction)}
                 </li>
               ))}

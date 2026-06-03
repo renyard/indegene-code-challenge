@@ -41,6 +41,14 @@ const recipe: Recipe = {
       requires_attention: true,
       tips: [],
     },
+    {
+      step_number: 2,
+      instruction: "Stir in the sauce.",
+      duration_minutes: 2,
+      timer_label: null,
+      requires_attention: false,
+      tips: [],
+    },
   ],
 };
 
@@ -94,5 +102,21 @@ describe("RecipeDetails", () => {
     render(<RecipeDetails />);
 
     expect(screen.getByText("Tomatoes (1)")).toBeInTheDocument();
+  });
+
+  it("strikes through completed steps", () => {
+    mockAgentState = {
+      ...recipeState,
+      current_step: 1,
+    };
+
+    render(<RecipeDetails />);
+
+    expect(screen.getByText("Cook the pasta until al dente.")).toHaveClass(
+      "line-through",
+    );
+    expect(screen.getByText("Stir in the sauce.")).not.toHaveClass(
+      "line-through",
+    );
   });
 });
