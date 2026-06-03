@@ -73,7 +73,7 @@ describe("upload", () => {
     const formData = createRecipeFormData();
 
     await expect(upload(formData)).resolves.toEqual(uploadResponse);
-    expect(fetchMock).toHaveBeenCalledWith("http://localhost:8000/upload", {
+    expect(fetchMock).toHaveBeenCalledWith("/upload", {
       method: "POST",
       body: formData,
     });
