@@ -3,6 +3,12 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRecipeContext } from "@/lib/RecipeContext";
 import { useRecipeAgent } from "@/lib/useRecipeAgent";
 
+function formatErrorMessage(error: unknown): string {
+  const message = error instanceof Error ? error.message : String(error);
+
+  return `Something went wrong: ${message || "Unknown error"}`;
+}
+
 export function Chat({
   className = "",
 }: {
@@ -13,6 +19,7 @@ export function Chat({
   const { context } = useRecipeContext();
   const { threadId } = context;
   const [input, setInput] = useState("");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -20,6 +27,21 @@ export function Chat({
       agent.threadId = threadId;
     }
   }, [agent, threadId]);
+
+  useEffect(() => {
+    const subscription = agent.subscribe({
+      onRunErrorEvent: ({ event }) => {
+        setErrorMessage(formatErrorMessage(event.message));
+      },
+      onRunFailed: ({ error }) => {
+        setErrorMessage(formatErrorMessage(error));
+      },
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [agent]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView?.({
@@ -32,13 +54,18 @@ export function Chat({
     if (!input.trim()) {
       return;
     }
-    agent.addMessage({
-      id: randomUUID(),
-      role: "user",
-      content: input,
-    });
-    setInput("");
-    await copilotkit.runAgent({ agent });
+    setErrorMessage(null);
+    try {
+      agent.addMessage({
+        id: randomUUID(),
+        role: "user",
+        content: input,
+      });
+      setInput("");
+      await copilotkit.runAgent({ agent });
+    } catch (error) {
+      setErrorMessage(formatErrorMessage(error));
+    }
   }, [input, agent, copilotkit]);
 
   if (!threadId) {
@@ -78,6 +105,13 @@ export function Chat({
               </div>
             </div>
           )}
+          {errorMessage ? (
+            <div className="chat chat-receiver" role="alert">
+              <div className="chat-bubble inline-flex gap-2">
+                <span className="text-red-500">{errorMessage}</span>
+              </div>
+            </div>
+          ) : null}
           <div ref={messagesEndRef} />
         </div>
       </div>

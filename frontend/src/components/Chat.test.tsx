@@ -4,6 +4,13 @@ import type { Dispatch, ReactNode, SetStateAction } from "react";
 import { Chat } from "@/components/Chat";
 import { RecipeContext, type RecipeContextState } from "@/lib/RecipeContext";
 
+type MockAgentSubscriber = {
+  onRunErrorEvent?: (params: { event: { message: string } }) => void;
+  onRunFailed?: (params: { error: Error }) => void;
+};
+
+let mockAgentSubscriber: MockAgentSubscriber | null = null;
+
 const mockAgent = {
   state: {},
   threadId: "",
@@ -11,6 +18,13 @@ const mockAgent = {
   isRunning: false,
   addMessage: jest.fn(),
   setState: jest.fn(),
+  subscribe: jest.fn((subscriber: MockAgentSubscriber) => {
+    mockAgentSubscriber = subscriber;
+
+    return {
+      unsubscribe: jest.fn(),
+    };
+  }),
 };
 
 const mockRunAgent = jest.fn();
@@ -60,6 +74,8 @@ describe("Chat component", () => {
     mockAgent.isRunning = false;
     mockAgent.addMessage.mockClear();
     mockAgent.setState.mockClear();
+    mockAgent.subscribe.mockClear();
+    mockAgentSubscriber = null;
     mockRunAgent.mockClear();
   });
 
@@ -113,5 +129,64 @@ describe("Chat component", () => {
       content: "Scale it",
     });
     expect(mockRunAgent).toHaveBeenCalledWith({ agent: mockAgent });
+  });
+
+  it("displays agent run errors as chat messages", async () => {
+    const user = userEvent.setup();
+    mockRunAgent.mockRejectedValueOnce(new Error("backend unavailable"));
+    renderWithRecipeContext(<Chat />);
+
+    await user.type(
+      screen.getByPlaceholderText("Type a message..."),
+      "Help me",
+    );
+    await user.click(screen.getByRole("button", { name: "Send" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Something went wrong: backend unavailable",
+    );
+  });
+
+  it("displays streamed run error events as chat messages", async () => {
+    const user = userEvent.setup();
+    mockRunAgent.mockImplementationOnce(async () => {
+      mockAgentSubscriber?.onRunErrorEvent?.({
+        event: { message: "Could not reach recipe backend" },
+      });
+    });
+    renderWithRecipeContext(<Chat />);
+
+    await user.type(
+      screen.getByPlaceholderText("Type a message..."),
+      "Help me",
+    );
+    await user.click(screen.getByRole("button", { name: "Send" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Something went wrong: Could not reach recipe backend",
+    );
+  });
+
+  it("clears a previous error before sending another message", async () => {
+    const user = userEvent.setup();
+    mockRunAgent
+      .mockRejectedValueOnce(new Error("backend unavailable"))
+      .mockResolvedValueOnce(undefined);
+    renderWithRecipeContext(<Chat />);
+
+    await user.type(
+      screen.getByPlaceholderText("Type a message..."),
+      "Help me",
+    );
+    await user.click(screen.getByRole("button", { name: "Send" }));
+    expect(await screen.findByRole("alert")).toBeInTheDocument();
+
+    await user.type(
+      screen.getByPlaceholderText("Type a message..."),
+      "Try again",
+    );
+    await user.click(screen.getByRole("button", { name: "Send" }));
+
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 });
