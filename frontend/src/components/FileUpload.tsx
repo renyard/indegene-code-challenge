@@ -1,9 +1,9 @@
 import { useMutation } from "@tanstack/react-query";
-import { useId, useState } from "react";
-import { useRecipeContext } from "@/lib/RecipeContext";
+import { useId } from "react";
 import { upload } from "@/lib/api/upload";
-import { LoadingSkeleton } from "./LoadingSkeleton";
+import { useRecipeContext } from "@/lib/RecipeContext";
 import { useRecipeAgent } from "@/lib/useRecipeAgent";
+import { LoadingSkeleton } from "./LoadingSkeleton";
 
 export function FileUpload({
   accept,

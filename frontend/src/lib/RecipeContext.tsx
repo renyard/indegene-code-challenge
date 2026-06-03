@@ -1,9 +1,9 @@
 import {
   createContext,
-  useContext,
-  useState,
   type Dispatch,
   type SetStateAction,
+  useContext,
+  useState,
 } from "react";
 
 export interface RecipeContextState {
@@ -13,7 +13,7 @@ export interface RecipeContextState {
   runId: string | null;
 }
 
-export interface RecipeContextValue {
+interface RecipeContextValue {
   context: RecipeContextState;
   setContext: Dispatch<SetStateAction<RecipeContextState>>;
 }

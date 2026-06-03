@@ -1,11 +1,11 @@
 import { useRecipeAgent } from "@/lib/useRecipeAgent";
 
-export function IngredientsList(): React.JSX.Element {
+export function IngredientsList(): React.JSX.Element | null {
   const { agentState, setAgentState } = useRecipeAgent();
   const recipe = agentState.recipe;
 
   if (!recipe) {
-    return <></>;
+    return null;
   }
 
   return (
@@ -14,7 +14,7 @@ export function IngredientsList(): React.JSX.Element {
         <h3 className="card-title">Ingredients:</h3>
         <ul className="list-disc list-inside flex flex-col gap-4">
           {recipe.ingredients.map((ingredient, index) => (
-            <li key={index} className="flex items-center gap-1">
+            <li key={ingredient.name} className="flex items-center gap-1">
               <input
                 type="checkbox"
                 className="checkbox"

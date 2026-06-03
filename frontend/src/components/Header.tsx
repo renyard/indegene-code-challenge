@@ -24,6 +24,7 @@ export function Header({
       </h1>
       <div className="flex">
         <button
+          type="button"
           className={`btn glass text-white ${showButtons ? "" : "invisible"}`}
           aria-haspopup="dialog"
           aria-expanded="false"
@@ -34,6 +35,7 @@ export function Header({
         </button>
 
         <button
+          type="button"
           className={`btn btn-primary ml-4 ${showButtons ? "" : "invisible"}`}
           aria-haspopup="dialog"
           aria-expanded="false"

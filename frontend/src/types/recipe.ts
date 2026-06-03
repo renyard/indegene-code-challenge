@@ -1,4 +1,4 @@
-export interface Ingredient {
+interface Ingredient {
   name: string;
   quantity: number | null;
   unit: string | null;
@@ -7,7 +7,7 @@ export interface Ingredient {
   substitutes: string[];
 }
 
-export interface RecipeStep {
+interface RecipeStep {
   step_number: number;
   instruction: string;
   duration_minutes: number | null;

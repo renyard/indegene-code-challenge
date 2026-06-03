@@ -1,6 +1,6 @@
 import { formatStep } from "@/lib/formatStep";
-import { IngredientsList } from "./IngredientsList";
 import { useRecipeAgent } from "@/lib/useRecipeAgent";
+import { IngredientsList } from "./IngredientsList";
 
 function capitalizeFirstLetter(string: string) {
   return string.charAt(0).toUpperCase() + string.slice(1);
@@ -10,12 +10,12 @@ export function RecipeDetails({
   className = "",
 }: {
   className?: string;
-}): React.JSX.Element {
+}): React.JSX.Element | null {
   const { agentState } = useRecipeAgent();
   const { current_step: currentStep, recipe } = agentState;
 
   if (!recipe) {
-    return <></>;
+    return null;
   }
 
   return (
@@ -25,39 +25,34 @@ export function RecipeDetails({
           <h2 className="card-title">{recipe.title}</h2>
           <div className="flex flex-wrap gap-4">
             <dl className="flex flex-row items-center gap-2">
-              <dd>
-                <span
-                  className="icon-[tabler--users] size-4"
-                  aria-label="Servings"
-                />
-              </dd>
+              <dt>
+                <span className="sr-only">Servings</span>
+                <span className="icon-[tabler--users] size-4" aria-hidden />
+              </dt>
               <dd className="mb-2 mr-4">
                 {recipe.servings} serving{recipe.servings !== 1 ? "s" : ""}
               </dd>
               <dt>
-                <span
-                  className="icon-[tabler--clock] size-4"
-                  aria-label="Preparation Time"
-                />
+                <span className="sr-only">Preparation Time</span>
+                <span className="icon-[tabler--clock] size-4" aria-hidden />
               </dt>
               <dd className="mb-2 mr-4">
                 {recipe.prep_time_minutes} min
                 {recipe.prep_time_minutes !== 1 ? "s" : ""}
               </dd>
               <dt>
-                <span
-                  className="icon-[tabler--cooker] size-4"
-                  aria-label="Cooking Time"
-                />
+                <span className="sr-only">Cooking Time</span>
+                <span className="icon-[tabler--cooker] size-4" aria-hidden />
               </dt>
               <dd className="mb-2 mr-4">
                 {recipe.cook_time_minutes} min
                 {recipe.cook_time_minutes !== 1 ? "s" : ""}
               </dd>
               <dt>
+                <span className="sr-only">Difficulty</span>
                 <span
                   className="icon-[tabler--antenna-bars-5] size-4"
-                  aria-label="Difficulty"
+                  aria-hidden
                 />
               </dt>
               <dd className="mb-2">
@@ -66,18 +61,14 @@ export function RecipeDetails({
             </dl>
           </div>
           <div className="mb-4">
-            {recipe.dietary_tags.length > 0 && (
-              <>
-                {recipe.dietary_tags.map((tag, index) => (
-                  <span
-                    key={index}
-                    className="inline-block bg-blue-100 text-blue-800 text-sm font-medium mr-2 mb-2 px-2 rounded-xl"
-                  >
-                    {tag}
-                  </span>
-                ))}
-              </>
-            )}
+            {recipe.dietary_tags.map((tag) => (
+              <span
+                key={tag}
+                className="inline-block bg-blue-100 text-blue-800 text-sm font-medium mr-2 mb-2 px-2 rounded-xl"
+              >
+                {tag}
+              </span>
+            ))}
             {recipe.cuisine && (
               <span className="inline-block bg-green-100 text-green-800 text-sm font-medium mr-2 mb-2 px-2 rounded-xl">
                 {recipe.cuisine}
@@ -96,7 +87,7 @@ export function RecipeDetails({
             <ol className="list-decimal list-inside flex flex-col gap-4">
               {recipe.steps.map((step, index) => (
                 <li
-                  key={index}
+                  key={step.step_number}
                   value={step.step_number}
                   className={`${index < currentStep ? "line-through" : ""}`}
                 >

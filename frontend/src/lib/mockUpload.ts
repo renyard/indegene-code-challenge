@@ -1,5 +1,5 @@
-import mockRecipe from "./mockRecipe.json";
 import type { Recipe, UploadResponse } from "@/types/recipe";
+import mockRecipe from "./mockRecipe.json";
 
 const recipe = mockRecipe as Recipe;
 
