@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { Dispatch, ReactNode, SetStateAction } from "react";
 import { Chat } from "@/components/Chat";
@@ -28,6 +28,34 @@ const mockAgent = {
 };
 
 const mockRunAgent = jest.fn();
+const speechRecognitionInstances: MockSpeechRecognition[] = [];
+
+class MockSpeechRecognition {
+  continuous = false;
+  interimResults = false;
+  lang = "";
+  onend: (() => void) | null = null;
+  onerror: (() => void) | null = null;
+  onresult:
+    | ((event: {
+        results: ArrayLike<ArrayLike<{ transcript: string }>>;
+      }) => void)
+    | null = null;
+  abort = jest.fn();
+  start = jest.fn();
+  stop = jest.fn();
+
+  constructor() {
+    speechRecognitionInstances.push(this);
+  }
+}
+
+function mockBrowserSpeechRecognition() {
+  Object.defineProperty(window, "SpeechRecognition", {
+    configurable: true,
+    value: MockSpeechRecognition,
+  });
+}
 
 jest.mock("@copilotkit/react-core/v2", () => ({
   CopilotKit: ({ children }: { children: ReactNode }) => <div>{children}</div>,
@@ -77,6 +105,9 @@ describe("Chat component", () => {
     mockAgent.subscribe.mockClear();
     mockAgentSubscriber = null;
     mockRunAgent.mockClear();
+    speechRecognitionInstances.length = 0;
+    Reflect.deleteProperty(window, "SpeechRecognition");
+    Reflect.deleteProperty(window, "webkitSpeechRecognition");
   });
 
   it("renders the chat input", () => {
@@ -86,6 +117,9 @@ describe("Chat component", () => {
       screen.getByPlaceholderText("Type a message..."),
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Send" })).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Start voice input" }),
+    ).not.toBeInTheDocument();
   });
 
   it("initializes the agent threadId from context", () => {
@@ -129,6 +163,57 @@ describe("Chat component", () => {
       content: "Scale it",
     });
     expect(mockRunAgent).toHaveBeenCalledWith({ agent: mockAgent });
+  });
+
+  it("adds voice transcripts to the message input", async () => {
+    const user = userEvent.setup();
+    mockBrowserSpeechRecognition();
+    renderWithRecipeContext(<Chat />);
+
+    const voiceButton = await screen.findByRole("button", {
+      name: "Start voice input",
+    });
+    await user.click(voiceButton);
+
+    expect(speechRecognitionInstances[0].start).toHaveBeenCalled();
+    expect(
+      screen.getByRole("button", { name: "Stop voice input" }),
+    ).toHaveAttribute("aria-pressed", "true");
+
+    act(() => {
+      speechRecognitionInstances[0].onresult?.({
+        results: [[{ transcript: "scale this for four people" }]],
+      });
+      speechRecognitionInstances[0].onend?.();
+    });
+
+    expect(screen.getByPlaceholderText("Type a message...")).toHaveValue(
+      "scale this for four people",
+    );
+    expect(
+      screen.getByRole("button", { name: "Start voice input" }),
+    ).toHaveAttribute("aria-pressed", "false");
+  });
+
+  it("appends voice transcripts to existing typed input", async () => {
+    const user = userEvent.setup();
+    mockBrowserSpeechRecognition();
+    renderWithRecipeContext(<Chat />);
+
+    await user.type(screen.getByPlaceholderText("Type a message..."), "Please");
+    await user.click(
+      await screen.findByRole("button", { name: "Start voice input" }),
+    );
+
+    act(() => {
+      speechRecognitionInstances[0].onresult?.({
+        results: [[{ transcript: "substitute the butter" }]],
+      });
+    });
+
+    expect(screen.getByPlaceholderText("Type a message...")).toHaveValue(
+      "Please substitute the butter",
+    );
   });
 
   it("displays agent run errors as chat messages", async () => {

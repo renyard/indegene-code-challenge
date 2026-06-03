@@ -2,6 +2,7 @@ import { randomUUID, useCopilotKit } from "@copilotkit/react-core/v2";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRecipeContext } from "@/lib/RecipeContext";
 import { useRecipeAgent } from "@/lib/useRecipeAgent";
+import { useVoiceInput } from "@/lib/useVoiceInput";
 
 function formatErrorMessage(error: unknown): string {
   const message = error instanceof Error ? error.message : String(error);
@@ -23,6 +24,30 @@ export function Chat({
   const messagesPaneRef = useRef<HTMLDivElement>(null);
   const messageCount = agent.messages.length;
   const isAgentRunning = agent.isRunning;
+
+  const appendTranscript = useCallback((transcript: string) => {
+    const cleanTranscript = transcript.trim();
+
+    if (!cleanTranscript) {
+      return;
+    }
+
+    setInput((currentInput) => {
+      const trimmedInput = currentInput.trimEnd();
+      const separator = trimmedInput ? " " : "";
+
+      return `${trimmedInput}${separator}${cleanTranscript}`;
+    });
+  }, []);
+
+  const {
+    isListening,
+    isSupported: isVoiceSupported,
+    toggleVoiceInput,
+  } = useVoiceInput({
+    onError: setErrorMessage,
+    onTranscript: appendTranscript,
+  });
 
   useEffect(() => {
     if (threadId) {
@@ -148,6 +173,27 @@ export function Chat({
           placeholder="Type a message..."
           className="grow shrink-0 resize-none overflow-hidden rounded-lg border px-3 py-2 leading-6"
         />
+        {isVoiceSupported ? (
+          <button
+            type="button"
+            aria-label={isListening ? "Stop voice input" : "Start voice input"}
+            aria-pressed={isListening}
+            disabled={agent.isRunning}
+            onClick={toggleVoiceInput}
+            className={`btn flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${
+              isListening ? "btn-error text-white" : "btn-soft"
+            }`}
+          >
+            <span
+              className={
+                isListening
+                  ? "icon-[tabler--microphone-filled] text-2xl"
+                  : "icon-[tabler--microphone] text-2xl"
+              }
+              aria-hidden="true"
+            />
+          </button>
+        ) : null}
         <button
           type="submit"
           aria-label="Send"
@@ -155,10 +201,10 @@ export function Chat({
           className="btn btn-primary flex h-11 w-11 shrink-0 items-center justify-center rounded-full  text-white"
         >
           {agent.isRunning ? (
-            <span className="loading loading-spinner" />
+            <span className="loading loading-spinner loading-md" />
           ) : (
             <span
-              className="icon-[tabler--arrow-narrow-up]"
+              className="icon-[tabler--arrow-narrow-up] text-2xl"
               aria-hidden="true"
             />
           )}
