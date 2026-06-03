@@ -180,15 +180,15 @@ export function Chat({
             aria-pressed={isListening}
             disabled={agent.isRunning}
             onClick={toggleVoiceInput}
-            className={`btn flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${
+            className={`btn flex h-11 w-11 shrink-0 items-center justify-center rounded-full p-0.5 ${
               isListening ? "btn-error text-white" : "btn-soft"
             }`}
           >
             <span
               className={
                 isListening
-                  ? "icon-[tabler--microphone-filled] text-2xl"
-                  : "icon-[tabler--microphone] text-2xl"
+                  ? "icon-[tabler--microphone-filled]"
+                  : "icon-[tabler--microphone]"
               }
               aria-hidden="true"
             />
@@ -198,13 +198,13 @@ export function Chat({
           type="submit"
           aria-label="Send"
           disabled={!input.trim() || agent.isRunning}
-          className="btn btn-primary flex h-11 w-11 shrink-0 items-center justify-center rounded-full  text-white"
+          className="btn btn-primary flex h-11 w-11 shrink-0 items-center justify-center rounded-full  text-white p-0.5"
         >
           {agent.isRunning ? (
             <span className="loading loading-spinner loading-md" />
           ) : (
             <span
-              className="icon-[tabler--arrow-narrow-up] text-2xl"
+              className="icon-[tabler--arrow-narrow-up]"
               aria-hidden="true"
             />
           )}
