@@ -59,7 +59,7 @@ docker compose build frontend
 docker compose up frontend
 ```
 
-The Docker Compose frontend service sets `BACKEND_URL=http://backend:8000` so the Next.js CopilotKit API route can reach the backend container. Browser uploads still use `http://localhost:8000/upload`, which is exposed by the backend service.
+The Docker Compose frontend service sets `BACKEND_URL=http://backend:8000` so the Next.js proxy routes can reach the backend container. Browser uploads post to the local Next.js `/upload` route, which forwards the file to the backend service.
 
 ## Useful Commands
 
@@ -98,19 +98,18 @@ The visible app is composed from:
 
 - `FileUpload` for selecting and submitting `.txt` or `.pdf` recipes.
 - `RecipeDetails` for rendering the parsed recipe.
-- `ChatWrapper` for the CopilotKit chat sidebar.
+- `Chat` for the CopilotKit chat sidebar.
 
 ### Upload Flow
 
 `src/components/FileUpload.tsx` owns the upload form. It uses React Query's `useMutation` to call `upload()` in `src/lib/api/upload.ts`.
 
-On success, the upload response is written into `RecipeContext`:
+On success, the upload response ids are written into `RecipeContext`:
 
 - `threadId`
 - `runId`
-- `state`
 
-The backend response state is the initial `RecipeAgentState`. Once this exists, the recipe view and chat can render.
+The backend response state is written into the CopilotKit agent state as the initial `RecipeAgentState`. Once this exists, the recipe view and chat can render.
 
 ### Shared State
 
@@ -120,17 +119,16 @@ The backend response state is the initial `RecipeAgentState`. Once this exists, 
 - `error`
 - `threadId`
 - `runId`
-- `state`
 
-The `state` value follows the TypeScript types in `src/types/recipe.ts`, which mirror the backend recipe context model.
+Recipe state follows the TypeScript types in `src/types/recipe.ts`, which mirror the backend recipe context model, and is stored in CopilotKit agent state.
 
 The UI reacts to this state directly. Agent messages are not parsed for recipe updates.
 
 ### Recipe View
 
-`src/components/RecipeDetails.tsx` reads `context.state.recipe` and renders the title, tags, description, timings, servings, ingredients and steps.
+`src/components/RecipeDetails.tsx` reads `agentState.recipe` and renders the title, tags, description, timings, servings, ingredients and steps.
 
-When the agent changes recipe state, this component re-renders from the updated context.
+When the agent changes recipe state, this component re-renders from the updated agent state.
 
 ### Chat and Agent Wiring
 
@@ -139,23 +137,23 @@ When the agent changes recipe state, this component re-renders from the updated 
 - `threadId`
 - initial recipe `state`
 
-`ChatSidebar` uses CopilotKit's `useAgent()` with the backend agent id:
+`Chat` uses CopilotKit's `useAgent()` with the backend agent id:
 
 ```ts
 recipe_agent
 ```
 
-It seeds the agent with the upload state, assigns the `threadId`, and subscribes to `OnStateChanged` updates. Valid agent state changes are written back into `RecipeContext`.
+It seeds the agent with the upload state, assigns the `threadId`, and subscribes to `OnStateChanged` updates.
 
 ### CopilotKit Runtime Route
 
-`src/app/api/copilotkit/[[...slug]]/route.ts` defines the local Next.js API route used by the browser:
+`src/app/copilotkit/[[...slug]]/route.ts` defines the local Next.js route used by the browser:
 
 ```text
-/api/copilotkit
+/copilotkit
 ```
 
-That route creates a CopilotKit runtime with an `HttpAgent` that forwards agent traffic to the backend:
+That route forwards CopilotKit traffic to the backend:
 
 ```text
 http://localhost:8000/copilotkit
@@ -163,7 +161,7 @@ http://localhost:8000/copilotkit
 
 Set `BACKEND_URL` to override this in server-side environments. Docker Compose sets it to `http://backend:8000`.
 
-This keeps the browser pointed at the Next app while the runtime proxies AG-UI traffic to the Python service.
+This keeps the browser pointed at the Next app while the proxy route forwards AG-UI traffic to the Python service.
 
 ## Backend Contract
 
