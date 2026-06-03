@@ -1,21 +1,16 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import type { Dispatch, ReactNode, SetStateAction } from "react";
 import { Chat } from "@/components/Chat";
 import { RecipeContext, type RecipeContextState } from "@/lib/RecipeContext";
-
-type MockAgentSubscription = {
-  onStateChanged: ({ state }: { state: unknown }) => void;
-};
 
 const mockAgent = {
   state: {},
   threadId: "",
   messages: [],
+  isRunning: false,
   addMessage: jest.fn(),
   setState: jest.fn(),
-  subscribe: jest.fn((_subscription: MockAgentSubscription) => ({
-    unsubscribe: jest.fn(),
-  })),
 };
 
 const mockRunAgent = jest.fn();
@@ -23,6 +18,8 @@ const mockRunAgent = jest.fn();
 jest.mock("@copilotkit/react-core/v2", () => ({
   CopilotKit: ({ children }: { children: ReactNode }) => <div>{children}</div>,
   UseAgentUpdate: {
+    OnMessagesChanged: "OnMessagesChanged",
+    OnRunStatusChanged: "OnRunStatusChanged",
     OnStateChanged: "OnStateChanged",
   },
   randomUUID: jest.fn(() => "message-1"),
@@ -41,14 +38,6 @@ const context: RecipeContextState = {
   error: null,
   threadId: "thread-1",
   runId: "run-1",
-  state: {
-    document_text: "A simple recipe",
-    recipe: null,
-    current_step: 1,
-    scaled_servings: null,
-    checked_ingredients: [],
-    cooking_started: false,
-  },
 };
 
 function renderWithRecipeContext(children: ReactNode) {
@@ -68,11 +57,9 @@ describe("Chat component", () => {
     mockAgent.state = {};
     mockAgent.threadId = "";
     mockAgent.messages = [];
+    mockAgent.isRunning = false;
     mockAgent.addMessage.mockClear();
     mockAgent.setState.mockClear();
-    mockAgent.subscribe = jest.fn((_subscription: MockAgentSubscription) => ({
-      unsubscribe: jest.fn(),
-    }));
     mockRunAgent.mockClear();
   });
 
@@ -85,41 +72,46 @@ describe("Chat component", () => {
     expect(screen.getByRole("button", { name: "Send" })).toBeInTheDocument();
   });
 
-  it("initializes agent state and threadId from context", () => {
+  it("initializes the agent threadId from context", () => {
     renderWithRecipeContext(<Chat />);
 
     expect(mockAgent.threadId).toBe("thread-1");
-    expect(mockAgent.setState).toHaveBeenCalledWith(context.state);
+    expect(mockAgent.setState).not.toHaveBeenCalled();
   });
 
-  it("subscribes to agent state changes and updates context", () => {
-    const updatedState = {
-      document_text: "Updated recipe text",
-      recipe: null,
-      current_step: 2,
-      scaled_servings: null,
-      checked_ingredients: [],
-      cooking_started: false,
+  it("does not render without a threadId", () => {
+    const emptyContext: RecipeContextState = {
+      ...context,
+      threadId: null,
     };
-    const mockSubscribe = jest.fn(({ onStateChanged }) => {
-      onStateChanged({ state: updatedState });
-      return { unsubscribe: jest.fn() };
+    const setContext: Dispatch<SetStateAction<RecipeContextState>> = jest.fn();
+
+    render(
+      <RecipeContext.Provider value={{ context: emptyContext, setContext }}>
+        <Chat />
+      </RecipeContext.Provider>,
+    );
+
+    expect(
+      screen.queryByPlaceholderText("Type a message..."),
+    ).not.toBeInTheDocument();
+  });
+
+  it("adds a user message and runs the agent on submit", async () => {
+    const user = userEvent.setup();
+    renderWithRecipeContext(<Chat />);
+
+    await user.type(
+      screen.getByPlaceholderText("Type a message..."),
+      "Scale it",
+    );
+    await user.click(screen.getByRole("button", { name: "Send" }));
+
+    expect(mockAgent.addMessage).toHaveBeenCalledWith({
+      id: "message-1",
+      role: "user",
+      content: "Scale it",
     });
-    mockAgent.subscribe = mockSubscribe;
-
-    const { setContext } = renderWithRecipeContext(<Chat />);
-
-    expect(mockSubscribe).toHaveBeenCalled();
-    expect(setContext).toHaveBeenCalledWith(expect.any(Function));
-
-    const updateContext = jest.mocked(setContext).mock.calls[0][0];
-
-    expect(typeof updateContext).toBe("function");
-    if (typeof updateContext === "function") {
-      expect(updateContext(context)).toEqual({
-        ...context,
-        state: updatedState,
-      });
-    }
+    expect(mockRunAgent).toHaveBeenCalledWith({ agent: mockAgent });
   });
 });

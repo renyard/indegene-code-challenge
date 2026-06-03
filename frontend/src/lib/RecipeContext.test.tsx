@@ -13,14 +13,6 @@ const populatedContext: RecipeContextState = {
   error: null,
   threadId: "thread-1",
   runId: "run-1",
-  state: {
-    document_text: "Parsed recipe text",
-    recipe: null,
-    current_step: 0,
-    scaled_servings: null,
-    checked_ingredients: [],
-    cooking_started: false,
-  },
 };
 
 function ContextConsumer() {
@@ -32,7 +24,6 @@ function ContextConsumer() {
       <p>Error: {context.error ?? "none"}</p>
       <p>Thread: {context.threadId ?? "none"}</p>
       <p>Run: {context.runId ?? "none"}</p>
-      <p>Document: {context.state?.document_text ?? "none"}</p>
 
       <button
         type="button"
@@ -71,7 +62,6 @@ describe("RecipeContext", () => {
     expect(screen.getByText("Error: none")).toBeInTheDocument();
     expect(screen.getByText("Thread: none")).toBeInTheDocument();
     expect(screen.getByText("Run: none")).toBeInTheDocument();
-    expect(screen.getByText("Document: none")).toBeInTheDocument();
   });
 
   it("updates context with functional state updates", async () => {
@@ -102,9 +92,6 @@ describe("RecipeContext", () => {
 
     expect(screen.getByText("Thread: thread-1")).toBeInTheDocument();
     expect(screen.getByText("Run: run-1")).toBeInTheDocument();
-    expect(
-      screen.getByText("Document: Parsed recipe text"),
-    ).toBeInTheDocument();
   });
 
   it("uses an explicit RecipeContext.Provider value", () => {
@@ -117,8 +104,6 @@ describe("RecipeContext", () => {
     );
 
     expect(screen.getByText("Thread: thread-1")).toBeInTheDocument();
-    expect(
-      screen.getByText("Document: Parsed recipe text"),
-    ).toBeInTheDocument();
+    expect(screen.getByText("Run: run-1")).toBeInTheDocument();
   });
 });
