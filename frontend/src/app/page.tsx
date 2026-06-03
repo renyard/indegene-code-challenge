@@ -1,15 +1,14 @@
 "use client";
 
+import { CopilotKitProvider } from "@copilotkit/react-core/v2";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-
-import { RecipeContextProvider, useRecipeContext } from "@/lib/RecipeContext";
 import { Chat } from "@/components/Chat";
 import { FileUpload } from "@/components/FileUpload";
-import { RecipeDetails } from "@/components/RecipeDetails";
 import { Header } from "@/components/Header";
-import { CopilotKitProvider } from "@copilotkit/react-core/v2";
+import { RecipeDetails } from "@/components/RecipeDetails";
 import { StepsModal } from "@/components/StepsModal";
 import { WakeLock } from "@/components/WakeLock";
+import { RecipeContextProvider, useRecipeContext } from "@/lib/RecipeContext";
 
 const queryClient = new QueryClient();
 
@@ -29,7 +28,7 @@ function PageContent() {
   const { context } = useRecipeContext();
 
   return (
-    <main className="flex min-h-screen max-h-screen flex-col gap-4 p-4">
+    <main className="flex h-dvh min-h-dvh max-h-dvh flex-col gap-4 p-4">
       <Header
         className="w-full shrink-0"
         showButtons={context.threadId !== null}

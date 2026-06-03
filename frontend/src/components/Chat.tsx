@@ -20,7 +20,9 @@ export function Chat({
   const { threadId } = context;
   const [input, setInput] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesPaneRef = useRef<HTMLDivElement>(null);
+  const messageCount = agent.messages.length;
+  const isAgentRunning = agent.isRunning;
 
   useEffect(() => {
     if (threadId) {
@@ -44,11 +46,25 @@ export function Chat({
   }, [agent]);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView?.({
-      behavior: "smooth",
-      block: "end",
-    });
-  });
+    if (messageCount === 0 && !isAgentRunning && !errorMessage) {
+      return;
+    }
+
+    const messagesPane = messagesPaneRef.current;
+
+    if (messagesPane) {
+      const scrollTop = messagesPane.scrollHeight;
+
+      if (typeof messagesPane.scrollTo === "function") {
+        messagesPane.scrollTo({
+          top: scrollTop,
+          behavior: "smooth",
+        });
+      } else {
+        messagesPane.scrollTop = scrollTop;
+      }
+    }
+  }, [messageCount, isAgentRunning, errorMessage]);
 
   const sendMessage = useCallback(async () => {
     if (!input.trim()) {
@@ -74,7 +90,10 @@ export function Chat({
 
   return (
     <div className={`flex min-h-0 flex-1 flex-col card ${className ?? ""}`}>
-      <div className="min-h-0 flex-1 overflow-y-auto rounded-lg p-4 bg-gray-100 dark:bg-gray-800">
+      <div
+        ref={messagesPaneRef}
+        className="min-h-0 flex-1 overflow-y-auto rounded-lg p-4 bg-gray-100 dark:bg-gray-800"
+      >
         <div className="flex min-h-full flex-col justify-end">
           {agent.messages.map((message) => {
             if (
@@ -112,7 +131,6 @@ export function Chat({
               </div>
             </div>
           ) : null}
-          <div ref={messagesEndRef} />
         </div>
       </div>
       <form
