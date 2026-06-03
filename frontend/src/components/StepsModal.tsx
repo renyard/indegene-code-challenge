@@ -59,6 +59,7 @@ export function StepsModal(): React.JSX.Element {
               <h2 className="text-2xl font-bold mb-4">
                 Step {currentStep + 1} of {steps.length}
               </h2>
+              <div className="divider" />
               {steps.map((step, index) => (
                 <div
                   key={index}

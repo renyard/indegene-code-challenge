@@ -66,7 +66,7 @@ export function FileUpload({
         });
       }}
     >
-      <h1 className="text-4xl font-bold m-8">Recipe Assistant</h1>
+      <h2 className="text-4xl font-bold mb-8">Let's Get Started</h2>
       <p className="text-center text-lg text-gray-600">
         Upload a recipe file to start chatting with the recipe agent. Supported
         formats: .txt, .pdf.
@@ -83,7 +83,7 @@ export function FileUpload({
         />
       </div>
 
-      {isError && <div className="text-red-500">{error?.message}</div>}
+      {isError && <div className="mb-8 text-red-500">{error?.message}</div>}
 
       <button name="submit" type="submit" className="btn btn-primary">
         Upload
