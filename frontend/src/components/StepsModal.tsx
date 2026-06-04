@@ -1,6 +1,7 @@
 "use client";
 
 import { useRecipeAgent } from "@/lib/useRecipeAgent";
+import { FittedText } from "./FittedText";
 
 export function StepsModal(): React.JSX.Element {
   const { agentState, setAgentState } = useRecipeAgent();
@@ -27,8 +28,8 @@ export function StepsModal(): React.JSX.Element {
       role="dialog"
       tabIndex={-1}
     >
-      <div className="modal-dialog max-w-none">
-        <div className="modal-content h-full max-h-none justify-between">
+      <div className="modal-dialog h-full min-h-0 max-w-none">
+        <div className="modal-content h-full min-h-0 max-h-none justify-between overflow-hidden">
           <div className="modal-header">
             <ul className="relative flex flex-row gap-x-2 w-full">
               {steps.map((step, index) => {
@@ -66,22 +67,25 @@ export function StepsModal(): React.JSX.Element {
               <span className="icon-[tabler--x] size-8"></span>
             </button>
           </div>
-          <div className="modal-body grow flex flex-col items-center justify-center text-center">
-            <div className="mt-5 grow">
-              <h2 className="text-2xl font-bold mb-4">
-                Step {currentStep + 1} of {steps.length}
-              </h2>
-              <div className="divider" />
-              {steps.map((step, index) => (
-                <div
-                  key={step.step_number}
-                  className={`flex h-full items-center justify-center p-4 ${index === currentStep ? "block" : "hidden"}`}
-                >
-                  <p className="text-4xl/loose text-center">
-                    {step.instruction}
-                  </p>
-                </div>
-              ))}
+          <div className="modal-body flex min-h-0 grow flex-col items-center overflow-hidden text-center">
+            <h2 className="text-2xl font-bold mt-5 mb-4">
+              Step {currentStep + 1} of {steps.length}
+            </h2>
+            <div className="divider" />
+            <div className="min-h-0 w-full flex-1 overflow-hidden">
+              {steps.map((step, index) => {
+                if (index === currentStep) {
+                  return (
+                    <div
+                      key={step.step_number}
+                      className="flex h-full min-h-0 w-full items-center justify-center p-4"
+                    >
+                      <FittedText>{step.instruction}</FittedText>
+                    </div>
+                  );
+                }
+                return null;
+              })}
             </div>
             <div className="mt-5 w-full flex items-center justify-between gap-x-2">
               <button
