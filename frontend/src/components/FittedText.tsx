@@ -10,6 +10,7 @@ export function FittedText({ children }: { children: string }) {
     const text = textRef.current;
 
     if (!container || !text) return;
+    if (text.textContent !== children) return;
 
     const fitText = () => {
       let low = 24;

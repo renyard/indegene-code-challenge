@@ -6,6 +6,14 @@ function capitalizeFirstLetter(string: string) {
   return string.charAt(0).toUpperCase() + string.slice(1);
 }
 
+function formatMinutes(minutes: number | null): string {
+  if (minutes === null) {
+    return "Not specified";
+  }
+
+  return `${minutes} min${minutes !== 1 ? "s" : ""}`;
+}
+
 export function RecipeDetails({
   className = "",
 }: {
@@ -25,39 +33,56 @@ export function RecipeDetails({
           <h2 className="card-title">{recipe.title}</h2>
           <div className="flex flex-wrap gap-4">
             <dl className="flex flex-row items-center gap-2">
-              <dt>
-                <span className="sr-only">Servings</span>
-                <span className="icon-[tabler--users] size-4" aria-hidden />
-              </dt>
-              <dd className="mb-2 mr-4">
-                {recipe.servings} serving{recipe.servings !== 1 ? "s" : ""}
-              </dd>
-              <dt>
-                <span className="sr-only">Preparation Time</span>
-                <span className="icon-[tabler--clock] size-4" aria-hidden />
-              </dt>
-              <dd className="mb-2 mr-4">
-                {recipe.prep_time_minutes} min
-                {recipe.prep_time_minutes !== 1 ? "s" : ""}
-              </dd>
-              <dt>
-                <span className="sr-only">Cooking Time</span>
-                <span className="icon-[tabler--cooker] size-4" aria-hidden />
-              </dt>
-              <dd className="mb-2 mr-4">
-                {recipe.cook_time_minutes} min
-                {recipe.cook_time_minutes !== 1 ? "s" : ""}
-              </dd>
-              <dt>
-                <span className="sr-only">Difficulty</span>
-                <span
-                  className="icon-[tabler--antenna-bars-5] size-4"
-                  aria-hidden
-                />
-              </dt>
-              <dd className="mb-2">
-                {capitalizeFirstLetter(recipe.difficulty)}
-              </dd>
+              {recipe.servings !== null && (
+                <>
+                  <dt>
+                    <span className="sr-only">Servings</span>
+                    <span className="icon-[tabler--users] size-4" aria-hidden />
+                  </dt>
+                  <dd className="mb-2 mr-4">
+                    {recipe.servings} serving{recipe.servings !== 1 ? "s" : ""}
+                  </dd>
+                </>
+              )}
+              {recipe.prep_time_minutes !== null && (
+                <>
+                  <dt>
+                    <span className="sr-only">Preparation Time</span>
+                    <span className="icon-[tabler--clock] size-4" aria-hidden />
+                  </dt>
+                  <dd className="mb-2 mr-4">
+                    {formatMinutes(recipe.prep_time_minutes)}
+                  </dd>
+                </>
+              )}
+              {recipe.cook_time_minutes !== null && (
+                <>
+                  <dt>
+                    <span className="sr-only">Cooking Time</span>
+                    <span
+                      className="icon-[tabler--cooker] size-4"
+                      aria-hidden
+                    />
+                  </dt>
+                  <dd className="mb-2 mr-4">
+                    {formatMinutes(recipe.cook_time_minutes)}
+                  </dd>
+                </>
+              )}
+              {recipe.difficulty && (
+                <>
+                  <dt>
+                    <span className="sr-only">Difficulty</span>
+                    <span
+                      className="icon-[tabler--antenna-bars-5] size-4"
+                      aria-hidden
+                    />
+                  </dt>
+                  <dd className="mb-2">
+                    {capitalizeFirstLetter(recipe.difficulty)}
+                  </dd>
+                </>
+              )}
             </dl>
           </div>
           <div className="mb-4">

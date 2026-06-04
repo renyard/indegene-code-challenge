@@ -119,4 +119,26 @@ describe("RecipeDetails", () => {
       "line-through",
     );
   });
+
+  it("omits timing fields when timing data is missing", () => {
+    mockAgentState = {
+      ...recipeState,
+      recipe: {
+        ...recipe,
+        prep_time_minutes: null,
+        cook_time_minutes: null,
+      },
+    };
+
+    render(<RecipeDetails />);
+
+    expect(
+      screen.queryByText("Preparation Time", { selector: ".sr-only" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("Cooking Time", { selector: ".sr-only" }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText("2 servings")).toBeInTheDocument();
+    expect(screen.getByText("Easy")).toBeInTheDocument();
+  });
 });
