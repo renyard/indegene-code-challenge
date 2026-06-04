@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { useRecipeAgent } from "@/lib/useRecipeAgent";
 import { FittedText } from "./FittedText";
 
@@ -20,6 +21,29 @@ export function StepsModal(): React.JSX.Element {
       current_step: boundedStep,
     }));
   };
+
+  useEffect(() => {
+    const modal = document.getElementById("steps-modal");
+
+    const markCookingStarted = () => {
+      setAgentState((prevState) => {
+        if (prevState.cooking_started) {
+          return prevState;
+        }
+
+        return {
+          ...prevState,
+          cooking_started: true,
+        };
+      });
+    };
+
+    modal?.addEventListener("open.overlay", markCookingStarted);
+
+    return () => {
+      modal?.removeEventListener("open.overlay", markCookingStarted);
+    };
+  }, [setAgentState]);
 
   return (
     <div

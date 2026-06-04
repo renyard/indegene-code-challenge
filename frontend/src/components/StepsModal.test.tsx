@@ -102,6 +102,35 @@ describe("StepsModal", () => {
     expect(screen.getByRole("heading", { name: "Step 1 of 2" })).toBeVisible();
   });
 
+  it("marks cooking as started when the modal opens", () => {
+    render(<StepsModal />);
+
+    screen
+      .getByRole("dialog", { hidden: true })
+      .dispatchEvent(new Event("open.overlay"));
+
+    expect(mockSetAgentState).toHaveBeenCalledTimes(1);
+    expect(mockAgentState.cooking_started).toBe(true);
+  });
+
+  it("keeps state unchanged if cooking has already started", () => {
+    const startedState = {
+      ...recipeState,
+      current_step: 0,
+      cooking_started: true,
+    };
+    mockAgentState = startedState;
+
+    render(<StepsModal />);
+
+    screen
+      .getByRole("dialog", { hidden: true })
+      .dispatchEvent(new Event("open.overlay"));
+
+    expect(mockSetAgentState).toHaveBeenCalledTimes(1);
+    expect(mockAgentState).toBe(startedState);
+  });
+
   it("renders the current step from agent state", () => {
     mockAgentState = {
       ...recipeState,
