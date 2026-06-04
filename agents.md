@@ -60,8 +60,8 @@ Frontend:
 - TypeScript
 - CopilotKit
 - React Query
-- Radix UI / Radix Themes
 - Tailwind CSS
+- FlyonUI
 - Jest + React Testing Library
 - Biome for linting and formatting
 - Runs on port `3000`

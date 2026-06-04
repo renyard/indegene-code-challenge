@@ -1,21 +1,19 @@
 import {
   createContext,
-  useContext,
-  useState,
   type Dispatch,
   type SetStateAction,
+  useContext,
+  useState,
 } from "react";
-import type { RecipeAgentState } from "@/types/recipe";
 
 export interface RecipeContextState {
   pending: boolean;
   error: string | null;
   threadId: string | null;
   runId: string | null;
-  state: RecipeAgentState | null;
 }
 
-export interface RecipeContextValue {
+interface RecipeContextValue {
   context: RecipeContextState;
   setContext: Dispatch<SetStateAction<RecipeContextState>>;
 }
@@ -25,7 +23,6 @@ const defaultContextState: RecipeContextState = {
   error: null,
   threadId: null,
   runId: null,
-  state: null,
 };
 
 const defaultContextValue: RecipeContextValue = {
@@ -53,9 +50,8 @@ export function RecipeContextProvider({
 }: {
   children: React.ReactNode;
 }): React.JSX.Element {
-  const [context, setContext] = useState<RecipeContextState>(
-    defaultContextState,
-  );
+  const [context, setContext] =
+    useState<RecipeContextState>(defaultContextState);
 
   return (
     <RecipeContext.Provider value={{ context, setContext }}>

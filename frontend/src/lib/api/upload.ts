@@ -1,4 +1,4 @@
-import { UploadResponse } from "@/types/recipe";
+import type { UploadResponse } from "@/types/recipe";
 import { createMockUploadResponse } from "../mockUpload";
 
 const USE_MOCK_UPLOAD =
@@ -16,7 +16,7 @@ export async function upload(formData: FormData): Promise<UploadResponse> {
     return createMockUploadResponse(file);
   }
 
-  const res = await fetch("http://localhost:8000/upload", {
+  const res = await fetch("/upload", {
     method: "POST",
     body: formData,
   });

@@ -1,14 +1,20 @@
 import { useMutation } from "@tanstack/react-query";
-import * as Form from "@radix-ui/react-form";
-import { Box, Button, Flex, Text } from "@radix-ui/themes";
-import { useId, useState } from "react";
-import { useRecipeContext } from "@/lib/RecipeContext";
+import { useId } from "react";
 import { upload } from "@/lib/api/upload";
+import { useRecipeContext } from "@/lib/RecipeContext";
+import { useRecipeAgent } from "@/lib/useRecipeAgent";
+import { LoadingSkeleton } from "./LoadingSkeleton";
 
-export function FileUpload({ accept }: { accept?: string }): React.JSX.Element {
+export function FileUpload({
+  accept,
+  className = "",
+}: {
+  accept?: string;
+  className?: string;
+}): React.JSX.Element {
   const inputId = useId();
-  const [fileName, setFileName] = useState("No file selected");
-  const { context, setContext } = useRecipeContext();
+  const { setContext } = useRecipeContext();
+  const { setAgentState } = useRecipeAgent();
 
   const mutation = useMutation({
     onError: (error) => {
@@ -31,23 +37,27 @@ export function FileUpload({ accept }: { accept?: string }): React.JSX.Element {
         error: null,
         threadId: result.threadId,
         runId: result.runId,
-        state: result.state,
       });
+
+      setAgentState((prevState) => ({
+        ...prevState,
+        ...result.state,
+      }));
     },
     mutationFn: async (formData: FormData) => {
       return upload(formData);
     },
   });
 
-  const { data, error, isError, isPending } = mutation;
+  const { error, isError, isPending } = mutation;
 
-  if (data) {
-    return <></>;
+  if (isPending) {
+    return <LoadingSkeleton />;
   }
 
   return (
-    <Form.Root
-      className="mx-auto flex min-h-[calc(100vh-2rem)] w-full max-w-md items-center justify-center"
+    <form
+      className={`flex flex-col items-center justify-center ${className}`}
       onSubmit={async (e) => {
         e.preventDefault();
         const formData = new FormData(e.currentTarget);
@@ -56,67 +66,28 @@ export function FileUpload({ accept }: { accept?: string }): React.JSX.Element {
         });
       }}
     >
-      <Flex direction="column" gap="3" className="text-center">
-        <h1 className="text-4xl font-bold">Recipe Chat</h1>
-        <p>
-          Upload a recipe file to start chatting with the recipe agent.
-          Supported formats: .txt, .pdf.
-        </p>
+      <h2 className="text-4xl font-bold mb-8">Let's Get Started</h2>
+      <p className="text-center text-lg text-gray-600">
+        Upload a recipe file to start chatting with the recipe agent. Supported
+        formats: .txt, .pdf.
+      </p>
 
-        <Form.Field name="file" className="m-8 b-4">
-          <Flex direction="column" gap="2">
-            <Flex
-              align="center"
-              gap="3"
-              wrap="wrap"
-              className="rounded border border-gray-300 p-3"
-            >
-              <Button asChild variant="soft" disabled={isPending}>
-                <label htmlFor={inputId}>Choose file</label>
-              </Button>
+      <div className="m-8 b-4">
+        <input
+          id={inputId}
+          type="file"
+          name="file"
+          className="input max-w-sm"
+          aria-label="file-input"
+          accept={accept}
+        />
+      </div>
 
-              <Box minWidth="0">
-                <Text as="p" size="2" color="gray" truncate>
-                  {fileName}
-                </Text>
-              </Box>
-            </Flex>
+      {isError && <div className="mb-8 text-red-500">{error?.message}</div>}
 
-            <Form.Control asChild>
-              <input
-                id={inputId}
-                type="file"
-                name="file"
-                className="sr-only"
-                aria-label="file-input"
-                accept={accept}
-                disabled={isPending}
-                onChange={(event) => {
-                  setFileName(
-                    event.currentTarget.files?.[0]?.name ?? "No file selected",
-                  );
-                }}
-              />
-            </Form.Control>
-          </Flex>
-        </Form.Field>
-
-        {isError && <Text color="red">{error?.message}</Text>}
-
-        <Form.Field name="submit">
-          <Form.Control asChild>
-            <Button
-              name="submit"
-              type="submit"
-              loading={isPending}
-              disabled={isPending}
-              size="4"
-            >
-              Upload
-            </Button>
-          </Form.Control>
-        </Form.Field>
-      </Flex>
-    </Form.Root>
+      <button name="submit" type="submit" className="btn btn-primary">
+        Upload
+      </button>
+    </form>
   );
 }

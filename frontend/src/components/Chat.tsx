@@ -1,93 +1,215 @@
-import { useRecipeContext, type RecipeContextState } from "@/lib/RecipeContext";
-import type { RecipeAgentState } from "@/types/recipe";
+import { randomUUID, useCopilotKit } from "@copilotkit/react-core/v2";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useRecipeContext } from "@/lib/RecipeContext";
+import { useRecipeAgent } from "@/lib/useRecipeAgent";
+import { useVoiceInput } from "@/lib/useVoiceInput";
 
-import {
-  CopilotKit,
-  CopilotSidebar,
-  useAgent,
-  UseAgentUpdate,
-} from "@copilotkit/react-core/v2";
-import { useEffect, type Dispatch, type SetStateAction } from "react";
+function formatErrorMessage(error: unknown): string {
+  const message = error instanceof Error ? error.message : String(error);
 
-function isRecipeAgentState(state: unknown): state is RecipeAgentState {
-  return (
-    typeof state === "object" &&
-    state !== null &&
-    "document_text" in state &&
-    "recipe" in state &&
-    "current_step" in state &&
-    "scaled_servings" in state &&
-    "checked_ingredients" in state &&
-    "cooking_started" in state
-  );
+  return `Something went wrong: ${message || "Unknown error"}`;
 }
 
-export function ChatSidebar({
-  context,
-  setContext,
-  threadId,
+export function Chat({
+  className = "",
 }: {
-  context: RecipeContextState;
-  setContext: Dispatch<SetStateAction<RecipeContextState>>;
-  threadId: string;
+  className?: string;
 }): React.JSX.Element | null {
-  const { agent } = useAgent({
-    agentId: "recipe_agent",
-    updates: [UseAgentUpdate.OnStateChanged],
+  const { agent } = useRecipeAgent();
+  const { copilotkit } = useCopilotKit();
+  const { context } = useRecipeContext();
+  const { threadId } = context;
+  const [input, setInput] = useState("");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const messagesPaneRef = useRef<HTMLDivElement>(null);
+  const messageCount = agent.messages.length;
+  const isAgentRunning = agent.isRunning;
+
+  const appendTranscript = useCallback((transcript: string) => {
+    const cleanTranscript = transcript.trim();
+
+    if (!cleanTranscript) {
+      return;
+    }
+
+    setInput((currentInput) => {
+      const trimmedInput = currentInput.trimEnd();
+      const separator = trimmedInput ? " " : "";
+
+      return `${trimmedInput}${separator}${cleanTranscript}`;
+    });
+  }, []);
+
+  const {
+    isListening,
+    isSupported: isVoiceSupported,
+    toggleVoiceInput,
+  } = useVoiceInput({
+    onError: setErrorMessage,
+    onTranscript: appendTranscript,
   });
 
   useEffect(() => {
-    if (
-      Object.keys(context.state || {}).length > 0 &&
-      Object.keys(agent.state || {}).length === 0
-    ) {
+    if (threadId) {
       agent.threadId = threadId;
-      agent.setState(context.state);
     }
-  }, [agent, context.state, threadId]);
+  }, [agent, threadId]);
 
   useEffect(() => {
     const subscription = agent.subscribe({
-      onStateChanged: ({ state }) => {
-        if (!isRecipeAgentState(state)) {
-          return;
-        }
-
-        setContext((prevContext) => ({
-          ...prevContext,
-          state,
-        }));
+      onRunErrorEvent: ({ event }) => {
+        setErrorMessage(formatErrorMessage(event.message));
+      },
+      onRunFailed: ({ error }) => {
+        setErrorMessage(formatErrorMessage(error));
       },
     });
 
     return () => {
       subscription.unsubscribe();
     };
-  }, [agent, setContext]);
+  }, [agent]);
 
-  return (
-    <CopilotSidebar
-      agentId="recipe_agent"
-      defaultOpen={window.innerWidth > 768}
-    />
-  );
-}
+  useEffect(() => {
+    if (messageCount === 0 && !isAgentRunning && !errorMessage) {
+      return;
+    }
 
-export function ChatWrapper(): React.JSX.Element | null {
-  const { context, setContext } = useRecipeContext();
-  const { state, threadId } = context;
+    const messagesPane = messagesPaneRef.current;
 
-  if (!threadId || !state) {
+    if (messagesPane) {
+      const scrollTop = messagesPane.scrollHeight;
+
+      if (typeof messagesPane.scrollTo === "function") {
+        messagesPane.scrollTo({
+          top: scrollTop,
+          behavior: "smooth",
+        });
+      } else {
+        messagesPane.scrollTop = scrollTop;
+      }
+    }
+  }, [messageCount, isAgentRunning, errorMessage]);
+
+  const sendMessage = useCallback(async () => {
+    if (!input.trim()) {
+      return;
+    }
+    setErrorMessage(null);
+    try {
+      agent.addMessage({
+        id: randomUUID(),
+        role: "user",
+        content: input,
+      });
+      setInput("");
+      await copilotkit.runAgent({ agent });
+    } catch (error) {
+      setErrorMessage(formatErrorMessage(error));
+    }
+  }, [input, agent, copilotkit]);
+
+  if (!threadId) {
     return null;
   }
 
   return (
-    <CopilotKit runtimeUrl="/api/copilotkit" agent="recipe_agent">
-      <ChatSidebar
-        context={context}
-        setContext={setContext}
-        threadId={threadId}
-      />
-    </CopilotKit>
+    <div className={`flex min-h-0 flex-1 flex-col card ${className ?? ""}`}>
+      <div
+        ref={messagesPaneRef}
+        className="min-h-0 flex-1 overflow-y-auto rounded-lg p-4 bg-gray-100 dark:bg-gray-800"
+      >
+        <div className="flex min-h-full flex-col justify-end">
+          {agent.messages.map((message) => {
+            if (
+              !message.content ||
+              (message.role !== "user" && message.role !== "assistant")
+            ) {
+              return null;
+            }
+
+            return (
+              <div key={message.id}>
+                {message.content ? (
+                  <div
+                    className={`chat chat-${message.role === "user" ? "sender" : "receiver"}`}
+                  >
+                    <div className="chat-bubble">
+                      {message.content as string}
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            );
+          })}
+          {agent.isRunning && (
+            <div className="chat chat-receiver">
+              <div className="chat-bubble">
+                <span className="loading loading-dots loading-sm" />
+              </div>
+            </div>
+          )}
+          {errorMessage ? (
+            <div className="chat chat-receiver" role="alert">
+              <div className="chat-bubble inline-flex gap-2">
+                <span className="text-red-500">{errorMessage}</span>
+              </div>
+            </div>
+          ) : null}
+        </div>
+      </div>
+      <form
+        className="p-4 flex gap-2"
+        onSubmit={(e) => {
+          e.preventDefault();
+          sendMessage();
+        }}
+      >
+        <input
+          type="text"
+          name="message"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          placeholder="Type a message..."
+          className="grow shrink-0 resize-none overflow-hidden rounded-lg border px-3 py-2 leading-6"
+        />
+        {isVoiceSupported ? (
+          <button
+            type="button"
+            aria-label={isListening ? "Stop voice input" : "Start voice input"}
+            aria-pressed={isListening}
+            disabled={agent.isRunning}
+            onClick={toggleVoiceInput}
+            className={`btn flex h-11 w-11 shrink-0 items-center justify-center rounded-full p-0.5 ${
+              isListening ? "btn-error text-white" : "btn-soft"
+            }`}
+          >
+            <span
+              className={
+                isListening
+                  ? "icon-[tabler--microphone-filled]"
+                  : "icon-[tabler--microphone]"
+              }
+              aria-hidden="true"
+            />
+          </button>
+        ) : null}
+        <button
+          type="submit"
+          aria-label="Send"
+          disabled={!input.trim() || agent.isRunning}
+          className="btn btn-primary flex h-11 w-11 shrink-0 items-center justify-center rounded-full  text-white p-0.5"
+        >
+          {agent.isRunning ? (
+            <span className="loading loading-spinner loading-md" />
+          ) : (
+            <span
+              className="icon-[tabler--arrow-narrow-up]"
+              aria-hidden="true"
+            />
+          )}
+        </button>
+      </form>
+    </div>
   );
 }

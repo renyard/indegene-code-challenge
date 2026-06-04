@@ -1,8 +1,16 @@
 import { render, screen } from "@testing-library/react";
-import type { Dispatch, ReactNode, SetStateAction } from "react";
 import { RecipeDetails } from "@/components/RecipeDetails";
-import { RecipeContext, type RecipeContextState } from "@/lib/RecipeContext";
 import type { Recipe, RecipeAgentState } from "@/types/recipe";
+
+const mockSetAgentState = jest.fn();
+let mockAgentState: RecipeAgentState;
+
+jest.mock("@/lib/useRecipeAgent", () => ({
+  useRecipeAgent: jest.fn(() => ({
+    agentState: mockAgentState,
+    setAgentState: mockSetAgentState,
+  })),
+}));
 
 const recipe: Recipe = {
   title: "Tomato Pasta",
@@ -33,6 +41,14 @@ const recipe: Recipe = {
       requires_attention: true,
       tips: [],
     },
+    {
+      step_number: 2,
+      instruction: "Stir in the sauce.",
+      duration_minutes: 2,
+      timer_label: null,
+      requires_attention: false,
+      tips: [],
+    },
   ],
 };
 
@@ -45,27 +61,14 @@ const recipeState: RecipeAgentState = {
   recipe,
 };
 
-const context: RecipeContextState = {
-  pending: false,
-  error: null,
-  threadId: "thread-1",
-  runId: "run-1",
-  state: recipeState,
-};
-
-function renderWithRecipeContext(children: ReactNode) {
-  const setContext: Dispatch<SetStateAction<RecipeContextState>> = jest.fn();
-
-  return render(
-    <RecipeContext.Provider value={{ context, setContext }}>
-      {children}
-    </RecipeContext.Provider>,
-  );
-}
-
 describe("RecipeDetails", () => {
+  beforeEach(() => {
+    mockAgentState = recipeState;
+    mockSetAgentState.mockReset();
+  });
+
   it("renders recipe details from context", () => {
-    renderWithRecipeContext(<RecipeDetails />);
+    render(<RecipeDetails />);
 
     expect(
       screen.getByRole("heading", { name: "Tomato Pasta" }),
@@ -79,34 +82,63 @@ describe("RecipeDetails", () => {
   });
 
   it("does not render a trailing space after ingredient quantity where no unit is specified", () => {
-    const contextWithoutUnit: RecipeContextState = {
-      ...context,
-      state: {
-        ...recipeState,
-        recipe: {
-          ...recipe,
-          ingredients: [
-            {
-              name: "Tomatoes",
-              quantity: 1,
-              unit: "",
-              preparation: "boiled",
-              category: "produce",
-              substitutes: [],
-            },
-          ],
-        },
+    mockAgentState = {
+      ...recipeState,
+      recipe: {
+        ...recipe,
+        ingredients: [
+          {
+            name: "Tomatoes",
+            quantity: 1,
+            unit: "",
+            preparation: "boiled",
+            category: "produce",
+            substitutes: [],
+          },
+        ],
       },
     };
 
-    render(
-      <RecipeContext.Provider
-        value={{ context: contextWithoutUnit, setContext: jest.fn() }}
-      >
-        <RecipeDetails />
-      </RecipeContext.Provider>,
-    );
+    render(<RecipeDetails />);
 
     expect(screen.getByText("Tomatoes (1)")).toBeInTheDocument();
+  });
+
+  it("strikes through completed steps", () => {
+    mockAgentState = {
+      ...recipeState,
+      current_step: 1,
+    };
+
+    render(<RecipeDetails />);
+
+    expect(screen.getByText("Cook the pasta until al dente.")).toHaveClass(
+      "line-through",
+    );
+    expect(screen.getByText("Stir in the sauce.")).not.toHaveClass(
+      "line-through",
+    );
+  });
+
+  it("omits timing fields when timing data is missing", () => {
+    mockAgentState = {
+      ...recipeState,
+      recipe: {
+        ...recipe,
+        prep_time_minutes: null,
+        cook_time_minutes: null,
+      },
+    };
+
+    render(<RecipeDetails />);
+
+    expect(
+      screen.queryByText("Preparation Time", { selector: ".sr-only" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("Cooking Time", { selector: ".sr-only" }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText("2 servings")).toBeInTheDocument();
+    expect(screen.getByText("Easy")).toBeInTheDocument();
   });
 });
