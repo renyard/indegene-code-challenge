@@ -88,6 +88,28 @@ Response:
 
 Store `threadId` and feed `state` into `useCoAgent` on the frontend.
 
+### `POST /recipe-image`
+
+Generate a browser-ready PNG data URL for a finished recipe image. This endpoint
+uses OpenAI's Image API directly and requires `OPENAI_API_KEY`, regardless of
+the `LLM_MODEL` chat provider.
+
+```bash
+curl -X POST http://localhost:8000/recipe-image \
+  -H "Content-Type: application/json" \
+  -d '{ "recipe": { "title": "Pasta", "servings": 4, "ingredients": [...], "steps": [...] } }'
+```
+
+Response:
+
+```json
+{
+  "dataUrl": "data:image/png;base64,...",
+  "mimeType": "image/png",
+  "prompt": "Photorealistic food photography..."
+}
+```
+
 ### `POST /copilotkit`
 
 AG-UI endpoint mounted by pydantic-ai. This is what CopilotKit talks to. Point your runtime here:

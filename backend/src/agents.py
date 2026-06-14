@@ -11,6 +11,7 @@ import logging
 import os
 from textwrap import dedent
 
+import httpx
 from pydantic_ai import Agent, RunContext
 from pydantic_ai.models import Model
 from pydantic_ai.models.anthropic import AnthropicModel
@@ -27,6 +28,7 @@ from .models import Recipe, RecipeContext, RecipeStep, SubstitutionResult
 logger = logging.getLogger(__name__)
 
 MODEL_NAME = os.getenv("LLM_MODEL", "gpt-4o").strip().strip('"').strip("'")
+OPENAI_IMAGE_GENERATION_URL = "https://api.openai.com/v1/images/generations"
 
 
 def build_model(name: str = MODEL_NAME) -> Model:
@@ -37,6 +39,117 @@ def build_model(name: str = MODEL_NAME) -> Model:
     if name.startswith("claude"):
         return AnthropicModel(name)
     raise ValueError(f"Unknown LLM_MODEL prefix: {name!r}")
+
+
+class RecipeImageGenerationError(Exception):
+    """Raised when the image provider cannot generate a recipe image."""
+
+    def __init__(self, message: str, status_code: int = 502) -> None:
+        super().__init__(message)
+        self.status_code = status_code
+
+
+class RecipeImageResult(BaseModel):
+    """Generated recipe image payload for the API layer."""
+
+    data_url: str = Field(..., description="Browser-ready PNG data URL")
+    mime_type: str = Field(default="image/png", description="Generated image MIME type")
+    prompt: str = Field(..., description="Prompt sent to the image provider")
+
+
+def build_recipe_image_prompt(recipe: Recipe) -> str:
+    """Build a concise image prompt from structured recipe data."""
+    ingredients = ", ".join(ing.name for ing in recipe.ingredients[:8])
+    tags = ", ".join(recipe.dietary_tags[:4])
+    cuisine = f"{recipe.cuisine} " if recipe.cuisine else ""
+    description = f" {recipe.description}" if recipe.description else ""
+    dietary = f" Dietary style: {tags}." if tags else ""
+
+    return dedent(f"""
+        Photorealistic food photography of the finished {cuisine}dish: {recipe.title}.
+        {description}
+        Key visible ingredients: {ingredients}.
+        Present it as a fully cooked plated meal on a clean kitchen table, natural light,
+        appetising texture, realistic colours, no text, no labels, no people.{dietary}
+    """).strip()
+
+
+async def generate_recipe_image(recipe: Recipe) -> RecipeImageResult:
+    """
+    Generate a finished-dish image for a recipe using OpenAI's Image API.
+
+    This is intentionally independent from LLM_MODEL chat routing because image
+    support differs by provider.
+    """
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        raise RecipeImageGenerationError(
+            "OPENAI_API_KEY is required to generate recipe images.",
+            status_code=503,
+        )
+
+    prompt = build_recipe_image_prompt(recipe)
+    payload = {
+        "model": "gpt-image-2",
+        "prompt": prompt,
+        "size": "1536x1024",
+        "quality": "low",
+        "n": 1,
+    }
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+    }
+
+    try:
+        async with httpx.AsyncClient(timeout=120) as client:
+            response = await client.post(
+                OPENAI_IMAGE_GENERATION_URL,
+                headers=headers,
+                json=payload,
+            )
+    except httpx.HTTPError as e:
+        logger.warning("Recipe image generation request failed: %s", e)
+        raise RecipeImageGenerationError(
+            "Could not reach the image generation service.",
+            status_code=503,
+        ) from e
+
+    if response.status_code >= 500 or response.status_code == 429:
+        logger.warning(
+            "Recipe image generation service unavailable: %s %s",
+            response.status_code,
+            response.text,
+        )
+        raise RecipeImageGenerationError(
+            "Image generation is temporarily unavailable.",
+            status_code=503,
+        )
+    if response.status_code >= 400:
+        logger.warning(
+            "Recipe image generation rejected request: %s %s",
+            response.status_code,
+            response.text,
+        )
+        raise RecipeImageGenerationError(
+            "Image generation failed for this recipe.",
+            status_code=502,
+        )
+
+    try:
+        image_base64 = response.json()["data"][0]["b64_json"]
+    except (KeyError, IndexError, TypeError, ValueError) as e:
+        logger.warning("Recipe image generation returned no image data: %s", e)
+        raise RecipeImageGenerationError(
+            "Image generation returned no image data.",
+            status_code=502,
+        ) from e
+
+    return RecipeImageResult(
+        data_url=f"data:image/png;base64,{image_base64}",
+        mime_type="image/png",
+        prompt=prompt,
+    )
 
 
 # =============================================================================
@@ -57,6 +170,7 @@ PARSE_RECIPE_PROMPT = dedent("""
 
     Parse the following recipe text into a structured format.
 """).strip()
+
 
 @cache(max_size=1)
 def get_recipe_parser() -> Agent[None, Recipe]:
@@ -110,6 +224,7 @@ SUBSTITUTION_PROMPT = dedent("""
     - Only set matched_ingredient to null if there's truly no relevant ingredient
     - The confidence score should reflect how well the match fits (1.0 = exact, 0.5+ = good partial match)
 """).strip()
+
 
 @cache(max_size=1)
 def get_substitution_agent() -> Agent[None, SubstitutionResult]:
@@ -306,9 +421,7 @@ def recipe_instructions(ctx: RunContext[StateDeps[RecipeContext]]) -> str:
         base_prompt += f"\nIngredients: {len(state.recipe.ingredients)}"
         base_prompt += f"\nSteps: {len(state.recipe.steps)}"
         base_prompt += f"\nCurrent step: {state.current_step}"
-        base_prompt += (
-            f"\nCooking started: {'yes' if state.cooking_started else 'no'}"
-        )
+        base_prompt += f"\nCooking started: {'yes' if state.cooking_started else 'no'}"
         if state.checked_ingredients:
             base_prompt += (
                 f"\nChecked ingredients: {', '.join(state.checked_ingredients)}"

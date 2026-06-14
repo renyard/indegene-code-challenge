@@ -10,7 +10,7 @@ from io import BytesIO
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from httpx import AsyncClient
+from httpx import AsyncClient, Response
 
 from src.models import (
     Ingredient,
@@ -19,6 +19,24 @@ from src.models import (
     RecipeStep,
     SubstitutionResult,
 )
+
+
+class FakeImageClient:
+    """Async context manager used to mock the outbound OpenAI image request."""
+
+    def __init__(self, response: Response) -> None:
+        self.response = response
+        self.post_kwargs = {}
+
+    async def __aenter__(self) -> "FakeImageClient":
+        return self
+
+    async def __aexit__(self, *args) -> None:
+        return None
+
+    async def post(self, *args, **kwargs) -> Response:
+        self.post_kwargs = kwargs
+        return self.response
 
 
 class TestUploadEndpoint:
@@ -91,6 +109,109 @@ class TestUploadEndpoint:
         assert "source_text" not in data["state"]["recipe"]
 
 
+class TestRecipeImageEndpoint:
+    """Tests for POST /recipe-image endpoint."""
+
+    async def test_recipe_image_returns_data_url(
+        self,
+        client: AsyncClient,
+        sample_recipe: Recipe,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """A successful provider response returns a browser-ready image payload."""
+        monkeypatch.setenv("OPENAI_API_KEY", "sk-test")
+        fake_client = FakeImageClient(
+            Response(
+                200,
+                json={"data": [{"b64_json": "abc123"}]},
+            )
+        )
+
+        with patch("src.agents.httpx.AsyncClient", return_value=fake_client):
+            response = await client.post(
+                "/recipe-image",
+                json={"recipe": sample_recipe.model_dump()},
+            )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["dataUrl"] == "data:image/png;base64,abc123"
+        assert data["mimeType"] == "image/png"
+        assert "Pasta al Pomodoro" in data["prompt"]
+
+        request_kwargs = fake_client.post_kwargs
+        assert request_kwargs["json"]["model"] == "gpt-image-2"
+        assert request_kwargs["json"]["size"] == "1536x1024"
+        assert request_kwargs["json"]["quality"] == "low"
+
+    async def test_recipe_image_requires_openai_api_key(
+        self,
+        client: AsyncClient,
+        sample_recipe: Recipe,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Missing OPENAI_API_KEY returns a service error, not a traceback."""
+        monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+
+        response = await client.post(
+            "/recipe-image",
+            json={"recipe": sample_recipe.model_dump()},
+        )
+
+        assert response.status_code == 503
+        assert "OPENAI_API_KEY" in response.json()["detail"]
+
+    async def test_recipe_image_maps_provider_error(
+        self,
+        client: AsyncClient,
+        sample_recipe: Recipe,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Provider failures are translated to non-500 API errors."""
+        monkeypatch.setenv("OPENAI_API_KEY", "sk-test")
+        fake_client = FakeImageClient(
+            Response(
+                401,
+                json={"error": {"message": "bad key"}},
+            )
+        )
+
+        with patch("src.agents.httpx.AsyncClient", return_value=fake_client):
+            response = await client.post(
+                "/recipe-image",
+                json={"recipe": sample_recipe.model_dump()},
+            )
+
+        assert response.status_code == 502
+
+    async def test_recipe_image_maps_empty_provider_response(
+        self,
+        client: AsyncClient,
+        sample_recipe: Recipe,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """A provider response without image data returns a non-500 API error."""
+        monkeypatch.setenv("OPENAI_API_KEY", "sk-test")
+        fake_client = FakeImageClient(Response(200, json={"data": []}))
+
+        with patch("src.agents.httpx.AsyncClient", return_value=fake_client):
+            response = await client.post(
+                "/recipe-image",
+                json={"recipe": sample_recipe.model_dump()},
+            )
+
+        assert response.status_code == 502
+
+    async def test_recipe_image_rejects_malformed_recipe_payload(
+        self,
+        client: AsyncClient,
+    ) -> None:
+        """FastAPI validation rejects malformed recipe payloads."""
+        response = await client.post("/recipe-image", json={"recipe": {"title": ""}})
+
+        assert response.status_code == 422
+
+
 class TestRecipeSerialisation:
     """Tests for Recipe model serialisation."""
 
@@ -122,9 +243,7 @@ class TestRecipeInstructions:
         assert "garlic" in prompt
         assert "olive oil" in prompt
 
-    def test_instructions_include_scaled_servings(
-        self, sample_recipe: Recipe
-    ) -> None:
+    def test_instructions_include_scaled_servings(self, sample_recipe: Recipe) -> None:
         """Scaled servings must appear so the agent doesn't re-suggest scaling."""
         from src.agents import recipe_instructions
 
@@ -308,7 +427,9 @@ class TestSubstituteIngredientToolErrors:
         ctx = MagicMock()
         ctx.deps.state = RecipeContext(recipe=sample_recipe)
 
-        with patch("src.agents.find_and_substitute", new_callable=AsyncMock) as mock_fas:
+        with patch(
+            "src.agents.find_and_substitute", new_callable=AsyncMock
+        ) as mock_fas:
             mock_fas.return_value = SubstitutionResult(
                 matched_ingredient=None,
                 substitute_name="margarine",
@@ -386,7 +507,9 @@ class TestCopilotKitEndpoints:
         }
 
         with recipe_agent.override(model=TestModel()):
-            response = await client.post("/copilotkit/", json=self._payload(empty_state))
+            response = await client.post(
+                "/copilotkit/", json=self._payload(empty_state)
+            )
 
         assert response.status_code == 200
         event_types = [e.get("type") for e in parse_sse_events(response.text)]

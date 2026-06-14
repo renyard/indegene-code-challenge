@@ -1,9 +1,15 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react";
 import { RecipeDetails } from "@/components/RecipeDetails";
+import { generateRecipeImage } from "@/lib/api/recipeImage";
 import type { Recipe, RecipeAgentState } from "@/types/recipe";
 
 const mockSetAgentState = jest.fn();
 let mockAgentState: RecipeAgentState;
+
+jest.mock("@/lib/api/recipeImage", () => ({
+  generateRecipeImage: jest.fn(),
+}));
 
 jest.mock("@/lib/useRecipeAgent", () => ({
   useRecipeAgent: jest.fn(() => ({
@@ -61,14 +67,37 @@ const recipeState: RecipeAgentState = {
   recipe,
 };
 
+const mockGenerateRecipeImage = jest.mocked(generateRecipeImage);
+
+function renderRecipeDetails() {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: false,
+      },
+    },
+  });
+
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <RecipeDetails />
+    </QueryClientProvider>,
+  );
+}
+
 describe("RecipeDetails", () => {
   beforeEach(() => {
     mockAgentState = recipeState;
     mockSetAgentState.mockReset();
+    mockGenerateRecipeImage.mockResolvedValue({
+      dataUrl: "data:image/png;base64,abc123",
+      mimeType: "image/png",
+      prompt: "food photo",
+    });
   });
 
   it("renders recipe details from context", () => {
-    render(<RecipeDetails />);
+    renderRecipeDetails();
 
     expect(
       screen.getByRole("heading", { name: "Tomato Pasta" }),
@@ -79,6 +108,20 @@ describe("RecipeDetails", () => {
     expect(
       screen.getByText("Cook the pasta until al dente."),
     ).toBeInTheDocument();
+  });
+
+  it("renders the generated recipe image next to the title", async () => {
+    renderRecipeDetails();
+
+    expect(
+      screen.getByRole("heading", { name: "Tomato Pasta" }),
+    ).toBeInTheDocument();
+    const image = await screen.findByRole("img", {
+      name: "Finished Tomato Pasta",
+    });
+
+    expect(image).toHaveAttribute("src", "data:image/png;base64,abc123");
+    expect(mockGenerateRecipeImage).toHaveBeenCalledWith(recipe);
   });
 
   it("does not render a trailing space after ingredient quantity where no unit is specified", () => {
@@ -99,7 +142,7 @@ describe("RecipeDetails", () => {
       },
     };
 
-    render(<RecipeDetails />);
+    renderRecipeDetails();
 
     expect(screen.getByText("Tomatoes (1)")).toBeInTheDocument();
   });
@@ -110,7 +153,7 @@ describe("RecipeDetails", () => {
       current_step: 1,
     };
 
-    render(<RecipeDetails />);
+    renderRecipeDetails();
 
     expect(screen.getByText("Cook the pasta until al dente.")).toHaveClass(
       "line-through",
@@ -130,7 +173,7 @@ describe("RecipeDetails", () => {
       },
     };
 
-    render(<RecipeDetails />);
+    renderRecipeDetails();
 
     expect(
       screen.queryByText("Preparation Time", { selector: ".sr-only" }),

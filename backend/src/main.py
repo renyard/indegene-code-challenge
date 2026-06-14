@@ -17,15 +17,20 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from fastapi import FastAPI, File, HTTPException, UploadFile
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
-from pypdf import PdfReader
-from pypdf.errors import PdfReadError
-from pydantic_ai.ag_ui import StateDeps
+from fastapi import FastAPI, File, HTTPException, UploadFile  # noqa: E402
+from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
+from pydantic import BaseModel, ConfigDict, Field  # noqa: E402
+from pydantic_ai.ag_ui import StateDeps  # noqa: E402
+from pypdf import PdfReader  # noqa: E402
+from pypdf.errors import PdfReadError  # noqa: E402
 
-from .models import RecipeContext
-from .agents import recipe_agent, parse_recipe_from_text
+from .agents import (  # noqa: E402
+    RecipeImageGenerationError,
+    generate_recipe_image,
+    parse_recipe_from_text,
+    recipe_agent,
+)
+from .models import Recipe, RecipeContext  # noqa: E402
 
 
 class UploadResponse(BaseModel):
@@ -38,6 +43,22 @@ class UploadResponse(BaseModel):
     context: list[Any] = Field(default_factory=list)
     forwardedProps: dict[str, Any] = Field(default_factory=dict)
     messages: list[Any] = Field(default_factory=list)
+
+
+class RecipeImageRequest(BaseModel):
+    """Request body for finished recipe image generation."""
+
+    recipe: Recipe
+
+
+class RecipeImageResponse(BaseModel):
+    """Browser-ready generated image payload."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    data_url: str = Field(..., alias="dataUrl")
+    mime_type: str = Field(..., alias="mimeType")
+    prompt: str
 
 
 logging.basicConfig(level=logging.INFO)
@@ -94,6 +115,24 @@ async def upload_document(file: UploadFile = File(...)) -> UploadResponse:
         threadId=str(uuid.uuid4()),
         runId=str(uuid.uuid4()),
         state=RecipeContext(document_text=text, recipe=recipe),
+    )
+
+
+# =============================================================================
+# Recipe Image Endpoint
+# =============================================================================
+@app.post("/recipe-image", response_model=RecipeImageResponse)
+async def recipe_image(request: RecipeImageRequest) -> RecipeImageResponse:
+    """Generate an image of the finished recipe."""
+    try:
+        image = await generate_recipe_image(request.recipe)
+    except RecipeImageGenerationError as e:
+        raise HTTPException(status_code=e.status_code, detail=str(e)) from e
+
+    return RecipeImageResponse(
+        data_url=image.data_url,
+        mime_type=image.mime_type,
+        prompt=image.prompt,
     )
 
 

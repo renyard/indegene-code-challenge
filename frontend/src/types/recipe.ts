@@ -48,3 +48,9 @@ export interface UploadResponse {
   forwardedProps: Record<string, unknown>;
   messages: unknown[];
 }
+
+export interface RecipeImageResponse {
+  dataUrl: string;
+  mimeType: "image/png";
+  prompt: string;
+}
